@@ -22,6 +22,10 @@ func fakeRoot(t *testing.T) string {
 	if err := os.WriteFile(filepath.Join(root, "packages/db/migrations/00001_baseline.sql"), []byte("-- +goose Up\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	yaml := "version: \"2\"\nsql:\n  - engine: postgresql\n    queries:\n      - staff\n      - customers\n    gen:\n      go:\n        package: persistence\n"
+	if err := os.WriteFile(filepath.Join(root, "packages/application/sqlc.yaml"), []byte(yaml), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	return root
 }
 
@@ -170,5 +174,47 @@ func TestRejectsInvalid(t *testing.T) {
 		if _, err := Migration(fakeRoot(t), name); err == nil {
 			t.Errorf("migration %q accepted", name)
 		}
+	}
+}
+
+func TestUsecaseRegistersDomainInSqlc(t *testing.T) {
+	root := fakeRoot(t)
+	if _, err := Usecase(root, UsecaseOptions{Domain: "projects", Name: "Create"}); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := os.ReadFile(filepath.Join(root, "packages/application/sqlc.yaml"))
+	if !strings.Contains(string(got), "      - customers\n      - projects\n    gen:") {
+		t.Fatalf("domain not appended after the last entry:\n%s", got)
+	}
+}
+
+func TestRegisterQueriesIdempotent(t *testing.T) {
+	path := filepath.Join(fakeRoot(t), "packages/application/sqlc.yaml")
+	if added, err := registerQueries(path, "customers"); err != nil || added {
+		t.Fatalf("existing domain: added=%v err=%v, want false nil", added, err)
+	}
+	if added, err := registerQueries(path, "projects"); err != nil || !added {
+		t.Fatalf("new domain: added=%v err=%v, want true nil", added, err)
+	}
+	if added, err := registerQueries(path, "projects"); err != nil || added {
+		t.Fatalf("repeat: added=%v err=%v, want false nil", added, err)
+	}
+	got, _ := os.ReadFile(path)
+	if strings.Count(string(got), "- projects") != 1 {
+		t.Fatalf("duplicate entry:\n%s", got)
+	}
+}
+
+func TestRegisterQueriesMissingListWritesNothing(t *testing.T) {
+	root := fakeRoot(t)
+	if err := os.WriteFile(filepath.Join(root, "packages/application/sqlc.yaml"), []byte("version: \"2\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Usecase(root, UsecaseOptions{Domain: "projects", Name: "Create"})
+	if err == nil || !strings.Contains(err.Error(), "queries") {
+		t.Fatalf("error = %v, want mention of queries", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(root, "packages/application/projects/service.go")); statErr == nil {
+		t.Fatal("service.go written despite failed registration")
 	}
 }

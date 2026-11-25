@@ -88,6 +88,10 @@ func Usecase(root string, o UsecaseOptions) ([]string, error) {
 	var written []string
 	service := filepath.Join(dir, "service.go")
 	if _, err := os.Stat(service); errors.Is(err, fs.ErrNotExist) {
+		// Register first: a malformed sqlc.yaml must fail before any file is written.
+		if _, err := registerQueries(filepath.Join(root, "packages", "application", "sqlc.yaml"), o.Domain); err != nil {
+			return nil, err
+		}
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return nil, err
 		}
@@ -103,6 +107,43 @@ func Usecase(root string, o UsecaseOptions) ([]string, error) {
 		return append(written, method), err
 	}
 	return append(written, method, sql), nil
+}
+
+// registerQueries appends domain to the `queries:` list of the sqlc config and reports
+// whether it changed the file. shortcut: line-based edit, not a YAML parser; it assumes the
+// list is a block of `- name` lines, upgrade if sqlc.yaml gains comments inside the list.
+func registerQueries(path, domain string) (bool, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return false, err
+	}
+	lines := strings.Split(string(raw), "\n")
+	last, indent := -1, ""
+	for i, l := range lines {
+		if strings.TrimSpace(l) == "queries:" {
+			last = i
+			continue
+		}
+		if last < 0 {
+			continue
+		}
+		t := strings.TrimSpace(l)
+		if !strings.HasPrefix(t, "- ") || (indent != "" && !strings.HasPrefix(l, indent+"- ")) {
+			break
+		}
+		if indent == "" {
+			indent = l[:len(l)-len(strings.TrimLeft(l, " "))]
+		}
+		if strings.TrimSpace(t[2:]) == domain {
+			return false, nil
+		}
+		last = i
+	}
+	if last < 0 || indent == "" {
+		return false, fmt.Errorf("%s: no `queries:` list to register %q in", path, domain)
+	}
+	lines = append(lines[:last+1], append([]string{indent + "- " + domain}, lines[last+1:]...)...)
+	return true, os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0o644)
 }
 
 var migrationFile = regexp.MustCompile(`^(\d{5})_.*\.sql$`)

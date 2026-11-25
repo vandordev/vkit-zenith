@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 const taskfile = await Bun.file("Taskfile.yml").text();
 test("exposes only foundation runtime operations", () => {
-	for (const name of ["doctor", "install", "dev", "dev:web", "dev:api", "dev:web-api", "dev:storybook", "start:api", "start:web-api", "gen", "gen:handlers", "gen:openapi", "sync:web", "sync:bo", "sync:api", "create:handler", "create:usecase", "create:migration", "check:scaffold", "check-types", "check:go"]) expect(taskfile).toContain(`  ${name}:`);
+	for (const name of ["doctor", "install", "dev", "dev:web", "dev:api", "dev:web-api", "dev:storybook", "start:api", "start:web-api", "gen", "gen:handlers", "gen:openapi", "sync:web", "sync:bo", "sync:api", "sync", "check:quick", "create:handler", "create:usecase", "create:migration", "check:scaffold", "check-types", "check:go"]) expect(taskfile).toContain(`  ${name}:`);
 	for (const name of ["migrate", "dev:worker", "dev:scheduler", "dev:realtime", "db:generate", "compose:smoke", "quality"]) expect(taskfile).not.toContain(`  ${name}:`);
 });
 test("Go dev loads development env explicitly and static checks never run services", () => {

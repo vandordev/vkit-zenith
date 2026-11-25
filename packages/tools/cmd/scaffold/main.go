@@ -35,7 +35,7 @@ func main() {
 		_ = set.Parse(os.Args[2:])
 		written, err = scaffold.Usecase(*root, o)
 		if err == nil {
-			defer fmt.Printf("next: add %s to packages/application/sqlc.yaml queries if it is new, write the SQL, run `task gen:db`\n", o.Domain)
+			defer fmt.Printf("next: write the SQL in %s (new domains are already in packages/application/sqlc.yaml), run `task gen:db`\n", o.Domain)
 		}
 	case "migration":
 		name := set.String("name", "", "snake_case, e.g. add_projects")

@@ -1,6 +1,6 @@
 // Package projects owns projects mutations: validation, authorization, ordered locks,
-// one transaction and the audit event (ADR-0004). Register its SQL files in
-// packages/application/sqlc.yaml, then run `task gen:db`.
+// one transaction and the audit event (ADR-0004). This domain is registered in
+// packages/application/sqlc.yaml; after writing its SQL, run `task gen:db`.
 package projects
 
 import (

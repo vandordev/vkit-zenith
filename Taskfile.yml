@@ -101,6 +101,9 @@ tasks:
   sync:api:
     desc: Regenerate public API wiring and schemas
     cmds: [task gen:openapi]
+  sync:
+    desc: "After API changes: regenerate handler wiring, schemas, Web/BO SDKs and both route trees"
+    cmds: [task gen:bo-client, task gen:web-client, task gen:routes, task gen:bo-routes]
   create:handler:
     desc: "Scaffold a handler: app=web-api|bo-api|api name=resource_action kind=query|mutation method=GET path=/v1/..."
     cmds:
@@ -264,6 +267,10 @@ tasks:
   check:ui-primitives:
     desc: Enforce shared React primitives in applications and stories
     cmds: [bun --no-env-file run check:ui-primitives]
+  check:quick:
+    desc: Typecheck only what git status changed, plus its consumers; one line on success
+    dir: "{{.ROOT_DIR}}"
+    cmds: [node scripts/check-quick.mjs]
   build:
     desc: Deployment web build (not an authorized verification gate)
     cmds: [bun --no-env-file run build]
