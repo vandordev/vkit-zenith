@@ -1,0 +1,24 @@
+package projects
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+)
+
+type CreateInput struct{}
+type CreateResult struct{}
+
+// Create validates its input before opening a transaction, then authorizes, locks, writes
+// and audits inside it, so a failure leaves nothing behind.
+func (s *Service) Create(ctx context.Context, in CreateInput) (CreateResult, error) {
+	var out CreateResult
+	err := s.transaction(ctx, func(ctx context.Context, tx pgx.Tx, at time.Time) error {
+		// Authorize the actor, lock rows in a fixed order, write with the queries in
+		// create.sql and record the audit event, all before returning.
+		return errors.New("projects.Create: not implemented")
+	})
+	return out, err
+}

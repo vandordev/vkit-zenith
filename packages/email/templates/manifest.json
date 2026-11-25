@@ -1,0 +1,26 @@
+{
+  "source": "packages/ui-email",
+  "sourceSHA256": "b38df129c607fa7c050b9426841eba32ff4305730e9807b9e68fbb18c1c9df56",
+  "fields": [
+    "DisplayName",
+    "ActionURL",
+    "ExpiresAt"
+  ],
+  "templates": {
+    "verify_email": {
+      "subject": "Verifikasi email Zenith",
+      "html": "verify_email.html.tmpl",
+      "text": "verify_email.txt.tmpl"
+    },
+    "setup_password": {
+      "subject": "Buat kata sandi Zenith",
+      "html": "setup_password.html.tmpl",
+      "text": "setup_password.txt.tmpl"
+    },
+    "reset_password": {
+      "subject": "Atur ulang kata sandi Zenith",
+      "html": "reset_password.html.tmpl",
+      "text": "reset_password.txt.tmpl"
+    }
+  }
+}

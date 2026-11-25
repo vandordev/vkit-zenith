@@ -1,0 +1,153 @@
+@import "./fonts.css";
+
+/* Zenith identity (ADR-0018): cool neutral greys in light and dark, one sans family, color
+ * reserved for status. Hairlines carry structure; field edges hold 3:1.
+ * Brand owns palette, fonts, motion and the shared radius scale; layout stays consumer-owned.
+ * The email exporter parses the first :root block: keep it plain hex values, no nested
+ * braces. Fonts, motion and the test-mode role live in later blocks.
+ * Status roles hold the *text* color; badge "-light" variants derive surfaces at /10.
+ */
+@theme inline {
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--radius-2xl: calc(var(--radius) + 8px);
+	--radius-3xl: calc(var(--radius) + 12px);
+	--radius-4xl: calc(var(--radius) + 16px);
+	--color-test: var(--test);
+	--color-test-foreground: var(--test-foreground);
+	--color-test-text: var(--test-text);
+}
+
+:root {
+	--radius: 0.8rem;
+	--background: #fbfbfc;
+	--foreground: #1b1c1f;
+	--card: #ffffff;
+	--card-foreground: #1b1c1f;
+	--popover: #ffffff;
+	--popover-foreground: #1b1c1f;
+	--primary: #1b1c1f;
+	--primary-foreground: #ffffff;
+	--secondary: #f0f1f3;
+	--secondary-foreground: #1b1c1f;
+	--muted: #f3f4f5;
+	--muted-foreground: #5f636b;
+	--accent: #f0f1f3;
+	--accent-foreground: #1b1c1f;
+	--destructive: #b91c1c;
+	--border: #e2e3e7;
+	--input: #868a93;
+	--ring: #5f636b;
+	--chart-1: #d4d6db;
+	--chart-2: #a3a7ae;
+	--chart-3: #767a82;
+	--chart-4: #4b4e55;
+	--chart-5: #1b1c1f;
+	/* Categorical data-viz hues, fixed order (blue, orange, aqua, yellow, magenta). Validated with the dataviz
+	   palette script: adjacent CVD ΔE >= 8, normal-vision ΔE >= 19, so keep this order and always label marks. */
+	--viz-1: #2a78d6;
+	--viz-2: #eb6834;
+	--viz-3: #1baf7a;
+	--viz-4: #eda100;
+	--viz-5: #e87ba4;
+	--sidebar: #f5f6f7;
+	--sidebar-foreground: #1b1c1f;
+	--sidebar-primary: #1b1c1f;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #fbfbfc;
+	--sidebar-accent-foreground: #1b1c1f;
+	--sidebar-border: #e2e3e7;
+	--sidebar-ring: #5f636b;
+	--success: #127535;
+	--success-foreground: #ffffff;
+	--success-text: #127535;
+	--info: #1d4ed8;
+	--info-foreground: #ffffff;
+	--info-text: #1d4ed8;
+	--warning: #955705;
+	--warning-foreground: #ffffff;
+	--warning-text: #955705;
+	--destructive-foreground: #ffffff;
+	--destructive-text: #b91c1c;
+}
+
+/* Non-inline @theme: Tailwind font utilities and :root custom properties. */
+@theme {
+	--font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+}
+
+:root {
+	--motion-fast: 120ms;
+	--motion-base: 200ms;
+	--motion-slow: 320ms;
+	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+	--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+	/* Test mode: amber, distinct from warning semantics. */
+	--test: #d97706;
+	--test-foreground: #1b1c1f;
+	--test-text: #955705;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	:root {
+		--motion-fast: 0ms;
+		--motion-base: 0ms;
+		--motion-slow: 0ms;
+	}
+}
+
+.dark {
+	--background: #08090a;
+	--foreground: #f7f8f8;
+	--card: #101113;
+	--card-foreground: #f7f8f8;
+	--popover: #101113;
+	--popover-foreground: #f7f8f8;
+	--primary: #f7f8f8;
+	--primary-foreground: #08090a;
+	--secondary: #1c1d20;
+	--secondary-foreground: #f7f8f8;
+	--muted: #17181b;
+	--muted-foreground: #8f939b;
+	--accent: #1c1d20;
+	--accent-foreground: #f7f8f8;
+	--destructive: #ff8a8a;
+	--border: #26282c;
+	--input: #6a6e76;
+	--ring: #9a9ea6;
+	--chart-1: #e6e7ea;
+	--chart-2: #b4b7bd;
+	--chart-3: #83878f;
+	--chart-4: #53565d;
+	--chart-5: #2a2c30;
+	--viz-1: #3987e5;
+	--viz-2: #d95926;
+	--viz-3: #199e70;
+	--viz-4: #c98500;
+	--viz-5: #d55181;
+	--sidebar: #0c0d0e;
+	--sidebar-foreground: #f7f8f8;
+	--sidebar-primary: #f7f8f8;
+	--sidebar-primary-foreground: #08090a;
+	--sidebar-accent: #17181b;
+	--sidebar-accent-foreground: #f7f8f8;
+	--sidebar-border: #26282c;
+	--sidebar-ring: #9a9ea6;
+	--success: #5fd28b;
+	--success-foreground: #143222;
+	--success-text: #5fd28b;
+	--info: #86a9ff;
+	--info-foreground: #18264a;
+	--info-text: #86a9ff;
+	--warning: #f2b552;
+	--warning-foreground: #3a2a10;
+	--warning-text: #f2b552;
+	--destructive-foreground: #3d1717;
+	--destructive-text: #ff8a8a;
+	--test: #f2b552;
+	--test-foreground: #33260f;
+	--test-text: #f2b552;
+}

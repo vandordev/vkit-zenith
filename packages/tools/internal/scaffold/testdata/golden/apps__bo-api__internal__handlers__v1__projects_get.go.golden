@@ -1,0 +1,32 @@
+package v1
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/vandordev/vkit-zenith/apps/bo-api/internal/security"
+)
+
+type V1ProjectsGetBody struct {
+	ID string `json:"id" format:"uuid"`
+}
+
+type V1ProjectsGetOutput struct{ Body V1ProjectsGetBody }
+
+type V1ProjectsGetInput struct {
+	ProjectID string `path:"projectId"`
+}
+
+//vkit:handler
+func NewGetProjects(api huma.API, b *security.Boundary) error {
+	huma.Register(api, huma.Operation{OperationID: "boV1GetProjects", Method: http.MethodGet, Path: "/v1/projects/{projectId}", Errors: []int{401, 403, 404, 422, 501, 503}}, func(ctx context.Context, in *V1ProjectsGetInput) (*V1ProjectsGetOutput, error) {
+		if _, err := b.Read(ctx, "any_staff"); err != nil {
+			return nil, security.Error(ctx, err)
+		}
+		// Read through this API's sqlc persistence: add projects_get.sql beside this file, run
+		// `task gen:db`, and scope every query by the caller (ADR-0002, ADR-0004).
+		return nil, huma.Error501NotImplemented("Tidak tersedia")
+	})
+	return nil
+}

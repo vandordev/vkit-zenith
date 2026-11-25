@@ -1,0 +1,38 @@
+package v1
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/vandordev/vkit-zenith/apps/bo-api/internal/security"
+)
+
+type V1ProjectsArchiveRequest struct {
+	Name string `json:"name" minLength:"1" maxLength:"200"`
+}
+
+type V1ProjectsArchiveBody struct {
+	ID string `json:"id" format:"uuid"`
+}
+
+type V1ProjectsArchiveOutput struct{ Body V1ProjectsArchiveBody }
+
+type V1ProjectsArchiveInput struct {
+	ProjectID string `path:"projectId"`
+	Body      V1ProjectsArchiveRequest
+}
+
+//vkit:handler
+func NewArchiveProjects(api huma.API, b *security.Boundary) error {
+	huma.Register(api, huma.Operation{OperationID: "boV1ArchiveProjects", Method: http.MethodPost, Path: "/v1/projects/{projectId}/archive", Errors: []int{401, 403, 404, 409, 422, 501, 503}}, func(ctx context.Context, in *V1ProjectsArchiveInput) (*V1ProjectsArchiveOutput, error) {
+		// The usecase receives this staff actor and records it in the audit event (ADR-0005).
+		if _, err := security.Actor(ctx); err != nil {
+			return nil, security.Error(ctx, err)
+		}
+		// Call the application usecase (`task create:usecase`); handlers never write business
+		// data themselves (ADR-0004). Map its errors with this API's existing error helper.
+		return nil, huma.Error501NotImplemented("Tidak tersedia")
+	})
+	return nil
+}

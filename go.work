@@ -1,0 +1,18 @@
+go 1.27.0
+
+toolchain go1.27.3
+
+use (
+	./apps/web-api
+	./apps/api
+	./apps/bo-api
+	./apps/worker
+	./packages/config/go
+	./packages/db
+	./packages/application
+	./packages/email
+	./packages/secrets
+	./packages/storage
+	./packages/tools
+	./packages/fixtures
+)

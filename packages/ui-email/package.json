@@ -1,0 +1,30 @@
+{
+	"name": "@repo/ui-email",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/templates.tsx"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"generate": "node ../../scripts/generate-email.mjs"
+	},
+	"dependencies": {
+		"@repo/brand": "*",
+		"@react-email/components": "1.0.12",
+		"@react-email/render": "2.1.1",
+		"react": "19.2.7",
+		"react-dom": "19.2.7"
+	},
+	"devDependencies": {
+		"@storybook/react": "10.6.2",
+		"@repo/typescript-config": "*",
+		"@types/bun": "^1.4.2",
+		"@types/node": "^22.15.3",
+		"@types/react": "19.2.2",
+		"deepmerge": "4.3.1",
+		"typescript": "5.9.2",
+		"vite": "8.1.6"
+	}
+}

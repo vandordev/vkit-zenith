@@ -1,0 +1,24 @@
+package v1
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+	"{{.Module}}/apps/bo-api/internal/security"
+)
+{{template "body" .}}
+type {{.Type}}Input struct { {{- template "params" .}}{{template "page" .}}
+}
+
+//vkit:handler
+func {{.Constructor}}(api huma.API, b *security.Boundary) error {
+	huma.Register(api, huma.Operation{OperationID: "{{.OperationID}}", Method: http.{{.MethodConst}}, Path: "{{.Path}}", Errors: []int{401, 403, 404, 422, 501, 503}}, func(ctx context.Context, in *{{.Type}}Input) (*{{.Type}}Output, error) {
+		if _, err := b.Read(ctx, "any_staff"); err != nil {
+			return nil, security.Error(ctx, err)
+		}
+{{- template "todo-query" .}}
+		return nil, huma.Error501NotImplemented("Tidak tersedia")
+	})
+	return nil
+}

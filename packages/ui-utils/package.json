@@ -1,0 +1,28 @@
+{
+	"name": "@repo/ui-utils",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./date": "./src/date.ts",
+		"./react": "./src/react.ts"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"test": "bun --no-env-file test src"
+	},
+	"peerDependencies": {
+		"react": "^19.2.0"
+	},
+	"peerDependenciesMeta": {
+		"react": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@repo/typescript-config": "*",
+		"@types/bun": "^1.4.2",
+		"@types/react": "19.2.2",
+		"typescript": "5.9.2"
+	}
+}

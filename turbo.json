@@ -1,0 +1,172 @@
+{
+	"$schema": "https://turborepo.dev/schema.json",
+	"ui": "tui",
+	"futureFlags": {
+		"experimentalGoWorkspaces": true
+	},
+	"tasks": {
+		"//#gen:email": {
+			"inputs": [
+				"packages/ui-email/src/**",
+				"packages/ui-email/scripts/**",
+				"packages/ui-email/package.json",
+				"packages/brand/src/**",
+				"bun.lock"
+			],
+			"outputs": [
+				"packages/email/templates/**",
+				"packages/ui-email/previews/**"
+			]
+		},
+		"//#gen:bo-client": {
+			"dependsOn": [
+				"//#gen:openapi"
+			],
+			"inputs": [
+				"contracts/openapi/bo-api.json",
+				"apps/bo/openapi-ts.config.ts",
+				"apps/bo/package.json",
+				"bun.lock"
+			],
+			"outputs": [
+				"apps/bo/src/lib/api/generated/**"
+			]
+		},
+		"//#gen:web-client": {
+			"dependsOn": [
+				"//#gen:openapi"
+			],
+			"inputs": [
+				"contracts/openapi/web-api.json",
+				"apps/web/openapi-ts.config.ts",
+				"apps/web/package.json",
+				"bun.lock"
+			],
+			"outputs": [
+				"apps/web/src/lib/api/generated/**"
+			]
+		},
+		"//#gen:handlers": {
+			"inputs": [
+				"apps/web-api/go.mod",
+				"apps/api/go.mod",
+				"apps/bo-api/go.mod",
+				"apps/*/internal/handlers/**/*.go",
+				"packages/tools/**/*.go",
+				"packages/tools/go.mod",
+				"go.work",
+				"go.work.sum"
+			],
+			"outputs": [
+				"apps/web-api/app.go",
+				"apps/api/app.go",
+				"apps/bo-api/app.go"
+			]
+		},
+		"//#gen:openapi": {
+			"dependsOn": [
+				"//#gen:handlers"
+			],
+			"inputs": [
+				"apps/web-api/**/*.go",
+				"apps/web-api/go.*",
+				"apps/api/**/*.go",
+				"apps/api/go.*",
+				"apps/bo-api/**/*.go",
+				"apps/bo-api/go.*",
+				"packages/application/**/*.go",
+				"packages/application/go.*",
+				"packages/db/**/*.go",
+				"packages/db/go.*",
+				"packages/config/go/**/*.go",
+				"packages/config/go/go.*",
+				"packages/fixtures/**/*.go",
+				"packages/fixtures/go.*",
+				"go.work",
+				"go.work.sum"
+			],
+			"outputs": [
+				"contracts/openapi/web-api.json",
+				"contracts/openapi/api.json",
+				"contracts/openapi/bo-api.json"
+			]
+		},
+		"@repo/storybook#build": {
+			"cache": false,
+			"outputs": [
+				"storybook-static/**"
+			]
+		},
+		"landing#build": {
+			"dependsOn": ["^build"],
+			"outputs": [".next/**", "out/**"]
+		},
+		"web#build": {
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/config/config.yaml"
+			],
+			"env": [
+				"VERCEL"
+			],
+			"outputs": [
+				".output/**",
+				".vite/**",
+				".vercel/output/**"
+			]
+		},
+		"api#build": {
+			"dependsOn": [
+				"^build"
+			],
+			"outputs": [
+				"api",
+				"api.exe"
+			]
+		},
+		"config#build": {
+			"outputs": [],
+			"cache": false
+		},
+		"tools#build": {
+			"outputs": [],
+			"cache": false
+		},
+		"build": {
+			"dependsOn": [
+				"^build"
+			],
+			"outputs": [
+				".output/**",
+				".vite/**",
+				"dist/**"
+			]
+		},
+		"lint": {
+			"dependsOn": [
+				"^lint"
+			],
+			"outputs": []
+		},
+		"check-types": {
+			"dependsOn": [
+				"^check-types"
+			],
+			"outputs": []
+		},
+		"dev": {
+			"passThroughEnv": [
+				"NODE_ENV",
+				"LOG_LEVEL",
+				"WEB_HOST",
+				"WEB_PORT",
+				"ZENITH_APPLICATION_ROOT"
+			],
+			"cache": false,
+			"persistent": true
+		},
+		"clean": {
+			"cache": false
+		}
+	}
+}

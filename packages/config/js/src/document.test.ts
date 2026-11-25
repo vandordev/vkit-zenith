@@ -1,0 +1,28 @@
+import { expect, test } from "bun:test";
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { loadConfigDocument } from "./loader";
+import { configFilePath } from "./paths";
+test("rejects forbidden YAML features and unknown keys", () => {
+	const directory = mkdtempSync("/tmp/opencode/config-");
+	try {
+		const filePath = join(directory, "config.yaml");
+		const original = readFileSync(configFilePath(), "utf8");
+		for (const source of ["%YAML 1.1\n---\n" + original, "app: []", "app: {}\napp: {}", "---\napp: {}\n---\napp: {}", "app: &app {}", "app: *app", "app: !execute {}", `${original}\ntypo: true`, original.replace("logLevel:", "logLevell:")]) {
+			writeFileSync(filePath, source);
+			expect(() => loadConfigDocument(filePath)).toThrow("Configuration");
+		}
+	} finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("accepts infrastructure sections and rejects unknown infrastructure keys", () => {
+	const directory = mkdtempSync("/tmp/opencode/config-");
+	try {
+		const filePath = join(directory, "config.yaml");
+		const original = readFileSync(configFilePath(), "utf8");
+		writeFileSync(filePath, original);
+		expect(loadConfigDocument(filePath)).toBeTruthy();
+		writeFileSync(filePath, original.replace("maxWorkers:", "maxWorkerz:"));
+		expect(() => loadConfigDocument(filePath)).toThrow("Configuration");
+	} finally { rmSync(directory, { recursive: true, force: true }); }
+});

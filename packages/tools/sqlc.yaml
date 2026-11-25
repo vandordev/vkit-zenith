@@ -1,0 +1,18 @@
+version: "2"
+sql:
+  - engine: postgresql
+    schema: dbtool/testdata/migrations
+    queries: dbtool/testdata/sqlc_fixture/queries.sql
+    gen:
+      go:
+        package: fixturequeries
+        out: dbtool/testdata/sqlc_fixture/generated
+        sql_package: pgx/v5
+  - engine: postgresql
+    schema: ../db/migrations
+    queries: dbtool/testdata/platform/queries
+    gen:
+      go:
+        package: platformqueries
+        out: dbtool/testdata/platform/generated
+        sql_package: pgx/v5

@@ -1,0 +1,295 @@
+version: "3"
+tasks:
+  default:
+    desc: Show available commands
+    cmds: [task --list]
+  install:
+    desc: Install pinned Bun dependencies without lifecycle scripts
+    cmds: [bun install --ignore-scripts]
+  doctor:
+    desc: Check tool availability and development file presence (no secret reads)
+    cmds:
+      - bun --version
+      - task --version
+      - go version
+      - test -f config/config.yaml
+      - test -f .env
+  dev:
+    desc: Run web foreground (explicit root development env)
+    cmds: [task dev:web]
+  dev:web:
+    desc: Run TanStack Start
+    # Direct like dev:bo: turbo's full-screen TUI garbles output when run beside another task (task -p).
+    cmds: [bun --no-env-file run --cwd apps/web dev]
+  dev:landing:
+    desc: Run static marketing app on port 3002
+    cmds: [bun --no-env-file run dev:landing]
+  dev:api:
+    desc: Run public API with explicit root development env
+    cmds: ["go run ./apps/api --root '{{.ROOT_DIR}}' --development"]
+  dev:web-api:
+    desc: Run Web API with explicit root development env
+    cmds: ["go run ./apps/web-api --root '{{.ROOT_DIR}}' --development"]
+  dev:bo:
+    desc: Run BO frontend with explicit development launcher (not verification)
+    cmds: [bun --no-env-file run --cwd apps/bo dev]
+  dev:bo-api:
+    desc: Run BO API with Air hot reload and explicit development config (not verification)
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - mkdir -p .air/bo-api
+      - go run github.com/air-verse/air@v1.67.4 -c apps/bo-api/.air.toml
+  dev:storybook:
+    desc: Run repository Storybook on port 6006
+    cmds: [bun --no-env-file run dev:storybook]
+  install:dbml:
+    desc: Install the standalone DBML CLI (latest; development tooling only)
+    cmds: [go install github.com/jason-cairns/dbml-toolkit/cmd/dbml@latest]
+  dev:db-schema:
+    desc: View the offline DBML schema at http://127.0.0.1:6007 with auto-refresh
+    dir: "{{.ROOT_DIR}}"
+    preconditions:
+      - sh: command -v dbml >/dev/null 2>&1
+        msg: Run task install:dbml and add your Go binary directory to PATH first.
+    cmds: ["dbml preview --port 6007 --no-open packages/db/schema.dbml {{.CLI_ARGS}}"]
+  check:db-schema:
+    desc: Validate offline DBML syntax and references (not migration parity)
+    dir: "{{.ROOT_DIR}}"
+    preconditions:
+      - sh: command -v dbml >/dev/null 2>&1
+        msg: Run task install:dbml and add your Go binary directory to PATH first.
+    cmds: [dbml parse packages/db/schema.dbml]
+  start:
+    desc: Start web using injected environment only
+    cmds: [task start:web]
+  start:web:
+    desc: Start built web using injected environment only
+    cmds: [bun --no-env-file run start:web]
+  start:api:
+    desc: Start public API using injected environment only
+    cmds: ['./apps/api/api --root "{{.ROOT_DIR}}"']
+  start:web-api:
+    desc: Start Web API using injected environment only
+    cmds: ['./apps/web-api/api --root "{{.ROOT_DIR}}"']
+  gen:routes:
+    desc: Generate committed TanStack routes without a listener
+    cmds: [bun --no-env-file run --cwd apps/web gen:routes]
+  gen:bo-routes:
+    desc: Generate committed BO routes without a listener
+    cmds: [bun --no-env-file run --cwd apps/bo gen:routes]
+  gen:handlers:
+    desc: Generate FX composition using handler AST only
+    cmds: [bun --no-env-file x turbo run //#gen:handlers]
+  gen:openapi:
+    desc: Export all four contracts offline after handler generation
+    cmds: [bun --no-env-file x turbo run //#gen:openapi]
+  gen:bo-client:
+    desc: Generate BO consumer client after offline schema export
+    cmds: [bun --no-env-file x turbo run //#gen:bo-client]
+  gen:web-client:
+    desc: Generate Auth consumer client after offline schema export
+    cmds: [bun --no-env-file x turbo run //#gen:web-client]
+  gen:
+    desc: Regenerate committed API contracts, clients, routes and embedded email templates
+    cmds: [task gen:bo-client, task gen:web-client, task gen:email]
+  sync:web:
+    desc: Regenerate Web API wiring, schemas, the Web SDK and the Web route tree
+    cmds: [task gen:web-client, task gen:routes]
+  sync:bo:
+    desc: Regenerate BO API wiring, schemas, the BO SDK and the BO route tree
+    cmds: [task gen:bo-client, task gen:bo-routes]
+  sync:api:
+    desc: Regenerate public API wiring and schemas
+    cmds: [task gen:openapi]
+  create:handler:
+    desc: "Scaffold a handler: app=web-api|bo-api|api name=resource_action kind=query|mutation method=GET path=/v1/..."
+    cmds:
+      - go run ./packages/tools/cmd/scaffold handler --app='{{.app}}' --name='{{.name}}' --kind='{{.kind}}' --method='{{.method}}' --path='{{.path}}'
+      - task gen:handlers
+  create:usecase:
+    desc: "Scaffold an application usecase: domain=projects name=Create"
+    cmds: ["go run ./packages/tools/cmd/scaffold usecase --domain='{{.domain}}' --name='{{.name}}'"]
+  create:migration:
+    desc: "Scaffold the next Goose migration: name=add_projects"
+    cmds: ["go run ./packages/tools/cmd/scaffold migration --name='{{.name}}'"]
+  check:scaffold:
+    desc: Scaffold golden, validation and real compile tests (copies the tracked tree to a temp dir)
+    dir: packages/tools
+    cmds: ["go test -tags=integration ./internal/scaffold/ ./cmd/scaffold/ -count=1 -timeout=10m"]
+  check-types:
+    desc: Fresh TypeScript checks and UI primitive ownership only
+    cmds: [bun --no-env-file run check-types]
+  check:go:
+    desc: Compile all Go owners only; never execute compiled services
+    cmds:
+      - mkdir -p /tmp/opencode/zenith-check
+      - go build -o /tmp/opencode/zenith-check/api ./apps/api
+      - go build -o /tmp/opencode/zenith-check/web-api ./apps/web-api
+      - go build -o /tmp/opencode/zenith-check/bo-api ./apps/bo-api
+      - go build -o /tmp/opencode/zenith-check/worker ./apps/worker
+      - go build -o /tmp/opencode/zenith-check/handler-gen ./packages/tools/cmd/handler-gen
+      - go build -o /tmp/opencode/zenith-check/db-gen ./packages/tools/cmd/db-gen
+      - go build -o /tmp/opencode/zenith-check/db-migrate ./packages/tools/cmd/db-migrate
+      - go build -o /tmp/opencode/zenith-check/scaffold ./packages/tools/cmd/scaffold
+      - task: check:go:config
+      - task: check:go:db
+      - task: check:go:application
+      - task: check:go:email
+      - task: check:go:secrets
+      - task: check:go:storage
+  check:go:db:
+    internal: true
+    dir: packages/db
+    cmds: [go build ./...]
+  check:go:application:
+    internal: true
+    dir: packages/application
+    cmds: [go build ./...]
+  check:go:email:
+    internal: true
+    dir: packages/email
+    cmds: [go build ./...]
+  check:go:secrets:
+    internal: true
+    dir: packages/secrets
+    cmds: [go build ./...]
+  check:go:storage:
+    internal: true
+    dir: packages/storage
+    cmds: [go build ./...]
+  gen:email:
+    desc: Export deterministic React Email to embedded Go templates offline
+    dir: "{{.ROOT_DIR}}"
+    cmds: [node scripts/generate-email.mjs]
+  check:auth:contracts:
+    dir: "{{.ROOT_DIR}}"
+    desc: Counted Auth protocol/policy/type gates; time/license limits explicit
+    cmds: [node scripts/check-auth.mjs contracts]
+  check:auth:config:
+    dir: "{{.ROOT_DIR}}"
+    desc: Counted fake Web/Core config isolation and types
+    cmds: [node scripts/check-auth.mjs config]
+  check:auth:unit:
+    dir: "{{.ROOT_DIR}}"
+    desc: Counted identity/email units; fails if required owner absent
+    cmds: [node scripts/check-auth.mjs unit]
+  check:auth:schema:
+    dir: "{{.ROOT_DIR}}"
+    desc: Counted Auth schema fixture; unavailable until cases installed
+    cmds: [node scripts/check-auth.mjs schema]
+  check:auth:accounts:
+    dir: "{{.ROOT_DIR}}"
+    desc: Counted Auth account acceptance; unavailable until installed
+    cmds: [node scripts/check-auth.mjs accounts]
+  check:auth:sessions:
+    dir: "{{.ROOT_DIR}}"
+    desc: Counted Auth session acceptance; unavailable until installed
+    cmds: [node scripts/check-auth.mjs sessions]
+  check:auth:adapters:
+    dir: "{{.ROOT_DIR}}"
+    desc: Auth browser adapters; unavailable until actual dedicated suite exists
+    cmds: [node scripts/check-auth.mjs adapters]
+  check:infra:
+    dir: "{{.ROOT_DIR}}"
+    desc: Counted focused M2 infrastructure checks (Go and JS config selectors)
+    cmds: [node scripts/check-infra.mjs]
+  db:status:
+    desc: Inspect explicitly configured database (no automatic .env)
+    cmds: ["go run ./packages/tools/cmd/db-migrate --root '{{.ROOT_DIR}}' --operation status {{.CLI_ARGS}}"]
+  db:version:
+    desc: Read explicitly configured database version (no automatic .env)
+    cmds: ["go run ./packages/tools/cmd/db-migrate --root '{{.ROOT_DIR}}' --operation version {{.CLI_ARGS}}"]
+  db:up:
+    desc: Explicitly migrate configured database (operator authorization required)
+    cmds: ["go run ./packages/tools/cmd/db-migrate --root '{{.ROOT_DIR}}' --operation up {{.CLI_ARGS}}"]
+  db:down-to:
+    desc: Explicit rollback; requires --target VERSION --confirm-rollback
+    cmds: ["go run ./packages/tools/cmd/db-migrate --root '{{.ROOT_DIR}}' --operation down-to {{.CLI_ARGS}}"]
+  gen:db:
+    desc: Generate native pgx queries with pinned offline sqlc (no DB or Docker)
+    cmds: [bun --no-env-file run scripts/generate-db.ts]
+  check:db:unit:
+    desc: Focused database foundation unit/config/ownership checks (no containers)
+    cmds:
+      - bun --no-env-file test scripts/check-architecture.test.ts packages/config/js/src/database-isolation.test.ts
+      - task: check:db:config
+      - task: check:db:runtime
+      - task: check:db:tools
+  check:db:config:
+    internal: true
+    dir: packages/config/go
+    cmds: [go test ./... -count=1 -timeout=2m]
+  check:db:runtime:
+    internal: true
+    dir: packages/db
+    cmds: [go test ./... -count=1 -timeout=2m]
+  check:db:tools:
+    internal: true
+    dir: packages/tools
+    cmds: [go test ./dbtool -count=1 -timeout=2m]
+  check:db:integration:
+    desc: Focused real PostgreSQL/codegen tests; owned temporary containers, no skip
+    dir: packages/tools
+    cmds:
+      [
+        "go test -tags=integration ./dbtool -run 'TestPostgres|TestPool|TestTransaction|TestMigration|TestSchema|TestSQLC|TestPublication' -count=1 -timeout=30m -v",
+      ]
+  check:bo:customers:
+    desc: Focused BO customer application and in-process HTTP/PG acceptance; no listeners
+    dir: apps/bo-api
+    cmds:
+      - go test -tags=integration ./internal/securitytest -run '^TestBOCustomer' -count=1 -timeout=30m -v
+  check:bo:security:
+    desc: Focused BO crypto, terminal input and actual in-process HTTP/PG security (no listeners)
+    cmds:
+      - task: check:bo:crypto
+      - task: check:bo:http
+  check:web-api:security:
+    desc: Counted in-process organization boundary HTTP/PostgreSQL acceptance; owned containers, no listeners
+    cmds: [node scripts/check-web-api-security.mjs]
+  check:bo:crypto:
+    internal: true
+    dir: packages/application
+    cmds: ["go test ./staff -run '^TestBO(Password|Token)' -count=1 -timeout=3m"]
+  check:bo:http:
+    internal: true
+    dir: apps/bo-api
+    cmds:
+      - go test ./internal/security ./internal/bootstrapcli -run '^TestBO' -count=1 -timeout=2m
+      - go test -tags=integration ./internal/securitytest -run '^TestBO' -count=1 -timeout=25m -v
+  check:go:config:
+    internal: true
+    dir: packages/config/go
+    cmds: [go build ./...]
+  check:ui-primitives:
+    desc: Enforce shared React primitives in applications and stories
+    cmds: [bun --no-env-file run check:ui-primitives]
+  build:
+    desc: Deployment web build (not an authorized verification gate)
+    cmds: [bun --no-env-file run build]
+  build:api:
+    desc: Produce public API binary for operations
+    dir: apps/api
+    cmds: [go build -o api .]
+  build:web-api:
+    desc: Produce Web API binary for operations
+    dir: apps/web-api
+    cmds: [go build -o api .]
+  build:storybook:
+    desc: Build static preview (not required for verification)
+    cmds: [bun --no-env-file run build:storybook]
+  format:
+    desc: Format TypeScript and Markdown
+    cmds: [bun --no-env-file run format]
+  format:check:
+    desc: Check formatting
+    cmds: [bun --no-env-file run format:check]
+  lint:
+    desc: Lint TypeScript (not a system verification gate)
+    cmds: [bun --no-env-file run lint]
+  compose:up:
+    desc: Operate five application services; not verification authorization
+    cmds: [docker compose up --build]
+  compose:down:
+    desc: Stop application services without deleting volumes
+    cmds: [docker compose down]

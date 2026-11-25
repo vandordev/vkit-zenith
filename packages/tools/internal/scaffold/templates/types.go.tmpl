@@ -1,0 +1,36 @@
+{{define "params"}}{{range .Params}}
+	{{.Field}} string `path:"{{.Name}}"`{{end}}{{end}}
+{{define "page"}}{{if .List}}
+	Page     int `query:"page" minimum:"1" default:"1"`
+	PageSize int `query:"{{if eq .App "api"}}page_size{{else}}pageSize{{end}}" minimum:"1" maximum:"100" default:"25"`{{end}}{{end}}
+{{define "body"}}{{if .List}}
+type {{.Type}}Item struct {
+	ID string `json:"id" format:"uuid"`
+}
+type {{.Type}}Pagination struct {
+	Page     int    `json:"page"`
+	PageSize int    `json:"{{if eq .App "api"}}page_size{{else}}pageSize{{end}}"`
+	Total    string `json:"total"`
+}
+type {{.Type}}Body struct {
+	Items      []{{.Type}}Item      `json:"items" nullable:"false"`
+	Pagination {{.Type}}Pagination `json:"pagination"`
+}
+{{else}}
+type {{.Type}}Body struct {
+	ID string `json:"id" format:"uuid"`
+}
+{{end}}
+type {{.Type}}Output struct{ Body {{.Type}}Body }
+{{end}}
+{{define "request"}}
+type {{.Type}}Request struct {
+	Name string `json:"name" minLength:"1" maxLength:"200"`
+}
+{{end}}
+{{define "todo-query"}}
+		// Read through this API's sqlc persistence: add {{.Name}}.sql beside this file, run
+		// `task gen:db`, and scope every query by the caller (ADR-0002, ADR-0004).{{end}}
+{{define "todo-mutation"}}
+		// Call the application usecase (`task create:usecase`); handlers never write business
+		// data themselves (ADR-0004). Map its errors with this API's existing error helper.{{end}}

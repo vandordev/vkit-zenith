@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1.11
+FROM golang:1.27.3-alpine AS builder
+ENV GOWORK=off CGO_ENABLED=0
+WORKDIR /app/apps/bo-api
+COPY apps/bo-api ./
+COPY packages/application /app/packages/application
+COPY packages/db /app/packages/db
+COPY packages/config/go /app/packages/config/go
+# The module declares test-only tooling. Its metadata resolves the module graph;
+# no tooling source, Testcontainers imports or fixtures enter either executable.
+COPY packages/tools/go.mod packages/tools/go.sum /app/packages/tools/
+RUN go build -mod=readonly -trimpath -o /out/bo-api . && go build -mod=readonly -trimpath -o /out/staff-bootstrap ./cmd/staff-bootstrap
+
+FROM gcr.io/distroless/static-debian12:nonroot AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder --chown=65532:65532 /out/bo-api /app/bo-api
+COPY --from=builder --chown=65532:65532 /out/staff-bootstrap /app/staff-bootstrap
+COPY --chown=65532:65532 config/config.yaml /app/config/config.yaml
+USER 65532:65532
+EXPOSE 4104
+ENTRYPOINT ["/app/bo-api", "--root", "/app"]

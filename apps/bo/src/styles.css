@@ -1,0 +1,37 @@
+@import "tailwindcss";
+@import "@repo/brand/tokens.css";
+@import "@repo/ui/styles.css";
+@source "./";
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-border: var(--border);
+	--color-ring: var(--ring);
+}
+body {
+	margin: 0;
+	font-family: var(--font-sans);
+}
+* {
+	box-sizing: border-box;
+}
+@layer base {
+	/* Fallback only: component utilities own their focus borders and rings. */
+	:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 3px;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

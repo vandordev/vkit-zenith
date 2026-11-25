@@ -1,0 +1,66 @@
+{
+  "name": "zenith",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "bun@1.4.2",
+  "scripts": {
+    "gen:email": "node scripts/generate-email.mjs",
+    "check:auth": "node scripts/check-auth.mjs",
+    "gen:handlers": "go run ./packages/tools/cmd/handler-gen --app apps/web-api && go run ./packages/tools/cmd/handler-gen --app apps/api && go run ./packages/tools/cmd/handler-gen --app apps/bo-api",
+    "gen:openapi": "go run ./apps/web-api --export-openapi contracts/openapi/web-api.json && go run ./apps/api --export-openapi contracts/openapi/api.json && go run ./apps/bo-api --export-openapi contracts/openapi/bo-api.json",
+    "gen:bo-client": "bun --no-env-file run --cwd apps/bo gen:client",
+    "gen:web-client": "bun --no-env-file run --cwd apps/web gen:client",
+    "build": "bun --no-env-file x turbo run build --filter=web && bun --no-env-file run scripts/check-public-bundles.ts",
+    "start": "bun --no-env-file run start:web",
+    "start:web": "bun --no-env-file run --cwd apps/web start",
+    "dev:web": "bun --no-env-file x turbo run dev --filter=web",
+    "dev:landing": "bun --no-env-file x turbo run dev --filter=landing",
+    "dev:storybook": "bun --no-env-file run --cwd apps/storybook dev",
+    "build:storybook": "bun --no-env-file run --cwd apps/storybook build",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
+    "check:architecture": "bun --no-env-file run scripts/check-architecture.ts",
+    "check:ui-primitives": "bun --no-env-file run scripts/check-ui-primitives.ts",
+    "check-types": "bun --no-env-file run check:ui-primitives && bun --no-env-file x tsc --noEmit -p scripts/tsconfig.json && bun --no-env-file x turbo run check-types --force",
+    "clean": "turbo run clean",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,md}": "prettier --write",
+    "*.go": "gofmt -w"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/bun": "^1.4.2",
+    "@types/node": "^22.15.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.2.0",
+    "prettier": "^3.7.4",
+    "turbo": "2.11.10",
+    "typescript": "5.9.2"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "packages/config/js"
+  ],
+  "dependencies": {},
+  "overrides": {
+    "seroval": "1.6.11",
+    "baseline-browser-mapping": "2.11.0",
+    "browserslist": "4.28.7",
+    "brace-expansion@^1": "1.1.21",
+    "brace-expansion@^5": "5.0.12",
+    "js-yaml": "4.3.2",
+    "nanoid": "3.3.18",
+    "postcss": "8.5.23",
+    "source-map-js": "1.2.2"
+  },
+  "patchedDependencies": {
+    "deepmerge@4.3.1": "patches/deepmerge@4.3.1.patch"
+  }
+}

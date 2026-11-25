@@ -1,0 +1,340 @@
+// Visual documentation only. Canonical source: migrations/00001_baseline.sql.
+// Keep aligned with every schema-affecting migration; never use as sqlc/Goose input.
+// PostgreSQL CHECK expressions, triggers and partial indexes stay in SQL.
+Project zenith_core {
+  database_type: 'PostgreSQL'
+  Note: '''
+    Snapshot of 00001_baseline.sql.
+    All 21 application tables; no Goose bookkeeping or live introspection. The baseline seeds staff and customer-admission control singletons only. River v0.51.2 tables are included; its enum, river_job_state_in_bitmask() helper, unlogged leader table, and partial job indexes are PostgreSQL-owned details. The historical river_job_notify() function and trigger are dropped by River migration 004.
+    Auth-bucket failure_recorded default false; other columns have none.
+    All foreign keys use ON DELETE RESTRICT and
+    PostgreSQL default ON UPDATE NO ACTION / MATCH SIMPLE.
+    CHECK constraints (including normalization, finite timestamps and lifecycle
+    consistency) remain authoritative in SQL; notes summarize, not reproduce them.
+    Partial indexes are described in notes, never shown as unconditional uniqueness.
+    PostgreSQL trigger/deferred semantics are not enforced by DBML.
+  '''
+}
+
+Table users {
+  id uuid [pk, not null]
+  email text [not null, note: 'Trimmed, basic non-whitespace email shape.']
+  email_normalized text [not null, unique, note: 'lower(btrim(email)); basic email shape.']
+  display_name text [not null, note: 'Nonblank.']
+  status text [not null, note: 'active | disabled']
+  email_verified_at timestamptz
+  telephone text [note: 'Nullable nonunique canonical E.164 shape: + followed by 2–15 digits, first nonzero; not verified.']
+  identity_version bigint [note: 'Positive when present; NULL leaves legacy identity unadopted by the new issuer.']
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: 'Finite, ordered timestamps. immutable user ID; deferred active-owner validation on disable/delete; write fences and TRUNCATE guard.'
+}
+
+Table password_credentials {
+  user_id uuid [pk, not null]
+  password_hash text [not null, note: 'Nonblank.']
+  password_changed_at timestamptz [not null, note: 'Finite.']
+  generation bigint [note: 'Positive; NULL legacy credential is not new-generation proof.']
+}
+
+Table identity_enrollment_receipts {
+  secret_hash bytea [pk, not null, note: '32 bytes; opaque enrollment receipt hash only.']
+  user_id uuid
+  identity_version bigint
+  credential_generation bigint
+  created_at timestamptz [not null]
+  expires_at timestamptz [not null]
+  indexes {
+    expires_at [name: 'identity_enrollment_receipts_expiry_idx']
+    user_id [name: 'identity_enrollment_receipts_user_idx']
+  }
+  Note: 'Finite expiry after creation, at most 30 elapsed minutes. User/version/generation all absent for a generic duplicate receipt, or all present with positive generations. Versions are historical bindings, not FKs to mutable current generations.'
+}
+
+Table identity_limiter_control {
+  id integer [pk, not null, note: 'Singleton: exactly 1; seeded by the baseline.']
+  bucket_count integer [not null, note: '0–100000. Admission prelocks this fence before sorted bucket keys, separately from user mutations.']
+}
+
+Table identity_limiter_buckets {
+  key_hash bytea [pk, not null, note: '32-byte HMAC of normalized source/account/purpose/window; no raw identifiers.']
+  window_started_at timestamptz [not null]
+  expires_at timestamptz [not null]
+  attempts integer [not null, note: 'Positive.']
+  indexes {
+    expires_at [name: 'identity_limiter_buckets_expiry_idx']
+  }
+  Note: 'Finite ordered window, at most 24 elapsed hours. AFTER INSERT/DELETE trigger atomically increments/decrements the singleton count and fails closed at capacity/missing control. ON CONFLICT without insertion does not increment. TRUNCATE forbidden. Cleanup is bounded, application-owned, never a worker.'
+}
+
+Ref identity_enrollment_receipts_user_fkey: identity_enrollment_receipts.user_id > users.id [delete: restrict]
+
+Table email_action_tokens {
+  id uuid [pk, not null]
+  user_id uuid [not null]
+  purpose text [not null, note: 'verify_email | setup_password | reset_password']
+  target_email_normalized text [not null, note: 'Lowercase, trimmed, basic email shape.']
+  token_hash bytea [not null, unique, note: 'Nonempty.']
+  expires_at timestamptz [not null]
+  consumed_at timestamptz
+  revoked_at timestamptz
+  created_at timestamptz [not null]
+  identity_version bigint
+  credential_generation bigint
+  enrollment_hash bytea
+  indexes {
+    user_id [name: 'email_action_tokens_user_idx']
+    expires_at [name: 'email_action_tokens_expiry_idx']
+  }
+  Note: 'Finite ordered timestamps, never consumed and revoked. Legacy bindings all NULL, cannot use setup purpose. New bindings: positive identity version, 32-byte token hash; setup generation=0/no enrollment, reset positive generation/no enrollment, verification positive generation/32-byte enrollment hash. Historical enrollment hash is not FK. New expiry at most 24h verification/setup or 30m reset. Partial email_action_tokens_live_user_purpose_idx(user_id,purpose,expires_at) WHERE consumed_at IS NULL AND revoked_at IS NULL. BEFORE INSERT trigger for new-generation rows writes the user identity-version fence and rejects an 11th live same-purpose action as of server-owned created_at. Issuers MUST prelock user before the email-action stage; no status UPDATE or organization fence is introduced. Stale Repeatable Read writers abort. Legacy rows remain history; no trigger promotes them.'
+}
+
+Table auth_sessions {
+  id uuid [pk, not null]
+  user_id uuid [not null]
+  secret_hash bytea [not null, unique, note: 'Nonempty.']
+  authenticated_at timestamptz [not null]
+  last_seen_at timestamptz [not null]
+  expires_at timestamptz [not null]
+  revoked_at timestamptz
+  created_at timestamptz [not null]
+  kind text [note: 'restricted | full; NULL legacy material is not new authority.']
+  identity_version bigint
+  credential_generation bigint
+  last_activity_at timestamptz
+  browser_cookie_expires_at timestamptz
+  indexes {
+    (id, user_id) [unique, name: 'auth_sessions_id_user_key']
+    user_id [name: 'auth_sessions_user_idx']
+    expires_at [name: 'auth_sessions_expiry_idx']
+  }
+  Note: 'Finite ordered timestamps. New fields either all NULL (legacy) or kind restricted/full, positive versions, 32-byte secret hash, finite activity >= authentication and browser cookie deadline in (authentication,expires]. Restricted deadline at most authentication+30 minutes with no activity renewal; full deadline exactly last_activity_at+1176 hours (49 elapsed days, not calendar arithmetic). Application owns monotonic renewal and live eligibility; stored cookie deadline changes only after browser-bound handoff.'
+}
+
+Table organizations {
+  id uuid [pk, not null]
+  name text [not null, note: 'Nonblank.']
+  slug text [not null, unique, note: '^[a-z0-9]+(-[a-z0-9]+)*$']
+  status text [not null, note: 'active | suspended']
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  logo_object_key text [note: 'Private R2 object key of the organization logo; ^[A-Za-z0-9/_.-]{1,512}$.']
+  Note: 'Finite, ordered timestamps. immutable ID; every organization, even suspended, requires an active owner membership linked to an active user; deferred validation and write fences.'
+}
+
+Table organization_memberships {
+  id uuid [pk, not null]
+  organization_id uuid [not null]
+  user_id uuid [not null]
+  status text [not null, note: 'active | removed']
+  role text [not null, note: 'CHECK role IN (owner, admin, member); owner requires active membership.']
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  indexes {
+    (organization_id, user_id) [unique, name: 'organization_memberships_org_user_key']
+    (id, organization_id) [unique, name: 'organization_memberships_id_org_key']
+    (user_id, organization_id) [name: 'organization_memberships_user_idx']
+  }
+  Note: '''
+    Finite, ordered timestamps. Partial index organization_memberships_owners_idx:
+    (organization_id, user_id) WHERE role = 'owner' AND status='active'.
+    immutable (id,user_id,organization_id); write fences, deferred active-owner
+    validation after insert/update/delete, and TRUNCATE guard. No silent retry.
+  '''
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Table platform_staff {
+  id uuid [pk, not null]
+  email_normalized text [not null, unique, note: 'Independent lower(btrim(email)); safe email grammar.']
+  display_name text [not null, note: 'Nonblank.']
+  status text [not null, note: 'active | disabled']
+  role text [not null, note: 'superadmin | admin']
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: 'Finite ordered timestamps; IDs immutable, deletion/truncation forbidden. Statement singleton UPDATE fence before row locks rejects stale Repeatable Read. First active superadmin latches bootstrap; deferred constraint retains one active superadmin. Role/status changes revoke all sessions. No staff seeded or customer credentials copied.'
+}
+
+Table platform_staff_credentials {
+ staff_id uuid [pk, not null]
+ password_hash text [not null, note: 'Argon2id v19 PHC, 80–256 characters; application validates bounded parameters. Never serialized.']
+ changed_at timestamptz [not null, note: 'Finite.']
+ Note: 'Statement singleton write fence; immutable owner; insert/update/delete revoke all target sessions. TRUNCATE denied.'
+}
+Table platform_staff_sessions {
+ id uuid [pk, not null]
+ staff_id uuid [not null]
+ token_hash bytea [not null, unique, note: 'Exactly 32 bytes; never raw token.']
+ created_at timestamptz [not null]
+ expires_at timestamptz [not null]
+ revoked_at timestamptz
+ indexes {
+  staff_id [name: 'platform_staff_sessions_staff_idx']
+  expires_at [name: 'platform_staff_sessions_expiry_idx']
+ }
+ Note: 'Finite timestamps; expires-created=720 elapsed hours, independent of TimeZone/DST, revocation >= creation. Identity/expiry immutable; revocation irreversible. Inserts require active staff with independent credentials; statement singleton fence serializes session writes.'
+}
+Table platform_staff_auth_control {
+ id smallint [pk, not null, note: 'Exactly 1; seeded (1,0,NULL). DELETE/TRUNCATE denied.']
+ mutation_epoch bigint [not null, note: 'Nonnegative, monotonic actual write fence.']
+ bootstrapped_at timestamptz [note: 'Finite or NULL; irreversible latch. Deferred one-active-superadmin guard.']
+}
+Table platform_staff_auth_buckets {
+ failure_recorded boolean [not null, default: false, note: 'once-per-bucket/window failure summary, atomically marked with audit.']
+ purpose text [not null, note: 'login | confirmation']
+ dimension text [not null, note: 'account | source']
+ key_hash bytea [not null, note: 'Exactly 32 bytes; no plaintext email/IP.']
+ window_start timestamptz [not null]
+ attempts bigint [not null, note: 'Nonnegative.']
+ expires_at timestamptz [not null]
+ indexes {
+  (purpose,dimension,key_hash,window_start) [pk]
+  expires_at [name: 'platform_staff_auth_buckets_expiry_idx']
+ }
+ Note: 'Finite timestamps; expiry=window_start+15 minutes. Application owns bounded admission/counters.'
+}
+
+Table audit_events {
+  id uuid [pk, not null]
+  occurred_at timestamptz [not null, note: 'Finite.']
+  actor_kind text [not null, note: 'user | staff | client | system | anonymous; exactly the matching actor FK is present, or none for system/anonymous.']
+  actor_user_id uuid
+  actor_staff_id uuid
+  organization_id uuid
+  action text [not null, note: 'Machine key ^[a-z][a-z0-9_.]*$, max 128 characters.']
+  outcome text [not null, note: 'success | failure | denied']
+  target_type text [note: 'NULL with target_id, or machine key max 64 characters.']
+  target_id text [note: 'NULL with target_type, or 1..256 characters.']
+  correlation_id uuid
+  detail jsonb [not null, note: 'audit_detail_valid: object <=16 KiB; reason <=1024 chars; changed_fields <=64 machine keys; previous/current restricted scalar fields. See SQL for exact allowlist.']
+  indexes {
+    (organization_id, occurred_at) [name: 'audit_events_org_time_idx']
+    actor_user_id [name: 'audit_events_actor_user_idx']
+    actor_staff_id [name: 'audit_events_actor_staff_idx']
+    occurred_at [name: 'audit_events_time_idx']
+  }
+  Note: 'Append-only: statement trigger rejects UPDATE, DELETE and TRUNCATE. Safe previous/current keys are role and status only. Storage allowlist is not proof of secret-free caller content; domain event allowlists remain application-owned. Owners/superusers remain privileged.'
+}
+
+// Actual SQL foreign keys only. Composite references must not be split.
+Ref password_credentials_user_fkey: users.id - password_credentials.user_id [delete: restrict]
+Ref email_action_tokens_user_fkey: email_action_tokens.user_id > users.id [delete: restrict]
+Ref auth_sessions_user_fkey: auth_sessions.user_id > users.id [delete: restrict]
+Ref organization_memberships_organization_fkey: organization_memberships.organization_id > organizations.id [delete: restrict]
+Ref organization_memberships_user_fkey: organization_memberships.user_id > users.id [delete: restrict]
+Ref platform_staff_credentials_staff_fkey: platform_staff_credentials.staff_id - platform_staff.id [delete: restrict]
+Ref platform_staff_sessions_staff_fkey: platform_staff_sessions.staff_id > platform_staff.id [delete: restrict]
+Ref audit_events_actor_user_fkey: audit_events.actor_user_id > users.id [delete: restrict]
+Ref audit_events_actor_staff_fkey: audit_events.actor_staff_id > platform_staff.id [delete: restrict]
+Ref audit_events_organization_fkey: audit_events.organization_id > organizations.id [delete: restrict]
+
+// ---------------------------------------------------------------------------
+// Organization API keys (00001_baseline.sql). Only a SHA-256 token hash is stored.
+// ---------------------------------------------------------------------------
+
+Table api_keys {
+  id uuid [pk, not null]
+  organization_id uuid [not null]
+  name text [not null]
+  token_prefix text [not null, note: '^zk_[A-Za-z0-9]{4,12}$']
+  token_hash bytea [not null, unique, note: 'Exactly 32 bytes; raw key never stored.']
+  last_used_at timestamptz
+  expires_at timestamptz
+  revoked_at timestamptz
+  created_at timestamptz [not null]
+  indexes {
+    organization_id [name: 'api_keys_organization_idx']
+  }
+}
+
+Ref api_keys_organization_fkey: api_keys.organization_id > organizations.id [delete: restrict]
+
+
+Table river_migration {
+  line text [pk, not null]
+  version bigint [pk, not null]
+  created_at timestamptz [not null, default: `now()`]
+  Note: 'River main migration history; line length is 1..127 and version >= 1. The historical primary key catalog name is river_migration_pkey1.'
+}
+
+Table river_job {
+  id bigserial [pk, increment]
+  state river_job_state [not null, default: 'available']
+  attempt smallint [not null, default: 0]
+  max_attempts smallint [not null, default: 25]
+  attempted_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  finalized_at timestamptz
+  scheduled_at timestamptz [not null, default: `now()`]
+  priority smallint [not null, default: 1]
+  args jsonb [not null]
+  attempted_by "text[]"
+  errors "jsonb[]"
+  kind text [not null]
+  metadata jsonb [not null, default: '{}']
+  queue text [not null, default: 'default']
+  tags "varchar(255)[]" [not null, default: '{}']
+  unique_key bytea
+  unique_states bit(8)
+  indexes {
+    kind [name: 'river_job_kind']
+    (state, finalized_at) [name: 'river_job_state_and_finalized_at_index']
+    (state, queue, priority, scheduled_at, id) [name: 'river_job_prioritized_fetching_index']
+    args [type: gin, name: 'river_job_args_index']
+    metadata [type: gin, name: 'river_job_metadata_index']
+    unique_key [name: 'river_job_unique_idx']
+  }
+  Note: 'River check constraints enforce state/finalization, attempts, priority and text lengths. river_job_state is a PostgreSQL enum. river_job_state_in_bitmask() supports the unique partial index river_job_unique_idx on unique_key where unique_key and unique_states are non-NULL and the state bit is enabled. river_job_state_and_finalized_at_index is partial where finalized_at is non-NULL.'
+}
+
+Table river_leader {
+  elected_at timestamptz [not null]
+  expires_at timestamptz [not null]
+  leader_id text [not null]
+  name text [pk, not null, default: 'default']
+  Note: 'UNLOGGED PostgreSQL table. name is constrained to default; leader_id and name are length checked.'
+}
+
+Table river_queue {
+  name text [pk, not null]
+  created_at timestamptz [not null, default: `now()`]
+  metadata jsonb [not null, default: '{}']
+  paused_at timestamptz
+  updated_at timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table river_notification {
+  id bigserial [pk, increment]
+  created_at timestamptz [not null, default: `now()`]
+  payload text [not null]
+  topic text [not null]
+  indexes {
+    created_at [name: 'river_notification_created_at_idx']
+    (topic, id) [name: 'river_notification_topic_id_idx']
+  }
+  Note: 'topic length is checked in SQL.'
+}
+
+Enum river_job_state {
+  available
+  cancelled
+  completed
+  discarded
+  pending
+  retryable
+  running
+  scheduled
+}

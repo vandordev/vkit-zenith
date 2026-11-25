@@ -1,0 +1,14 @@
+{
+	"extends": "@repo/typescript-config/base.json",
+	"compilerOptions": {
+		"baseUrl": ".",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"jsx": "react-jsx",
+		"noEmit": true,
+		"paths": { "@/*": ["./src/*"] },
+		"types": ["vite/client"]
+	},
+	"include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "openapi-ts.config.ts", "scripts/**/*.ts", "types/**/*.d.ts"],
+	"exclude": ["node_modules", ".output"]
+}

@@ -1,0 +1,79 @@
+db:
+  dsn: "${DB_DSN}"
+  maxOpenConnections: 10
+  connectionMaxLifetimeSeconds: 1800
+  connectionMaxIdleTimeSeconds: 300
+  connectTimeoutSeconds: 10
+worker:
+  shutdownTimeoutSeconds: "${WORKER_SHUTDOWN_TIMEOUT_SECONDS:-30}"
+  maxWorkers: "${WORKER_MAX_WORKERS:-10}"
+storage:
+  endpoint: "${R2_ENDPOINT}"
+  region: "${R2_REGION:-auto}"
+  bucket: "${R2_BUCKET}"
+  accessKeyId: "${R2_ACCESS_KEY_ID}"
+  secretAccessKey: "${R2_SECRET_ACCESS_KEY}"
+  presignTtlSeconds: "${R2_PRESIGN_TTL_SECONDS:-300}"
+encryption:
+  keys: ["${ZENITH_KEK_ACTIVE}"]
+app:
+  environment: "${NODE_ENV:-development}"
+  logLevel: "${LOG_LEVEL:-info}"
+web:
+  host: "${WEB_HOST:-0.0.0.0}"
+  port: "${WEB_PORT:-4100}"
+  apiBaseUrl: "${API_BASE_URL:-http://localhost:4101}"
+bo:
+  host: "${BO_HOST:-0.0.0.0}"
+  port: "${BO_PORT:-4103}"
+  boApiBaseUrl: "${BO_API_BASE_URL:-http://localhost:4104}"
+boApi:
+  host: "${BO_API_HOST:-0.0.0.0}"
+  port: "${BO_API_PORT:-4104}"
+  readTimeoutSeconds: "${BO_API_READ_TIMEOUT_SECONDS:-15}"
+  writeTimeoutSeconds: "${BO_API_WRITE_TIMEOUT_SECONDS:-30}"
+  idleTimeoutSeconds: "${BO_API_IDLE_TIMEOUT_SECONDS:-60}"
+  shutdownTimeoutSeconds: "${BO_API_SHUTDOWN_TIMEOUT_SECONDS:-10}"
+  docs:
+    basicAuth:
+      enabled: "${BO_API_DOCS_ENABLED:-true}"
+      username: "${BO_API_DOCS_USERNAME:-}"
+      password: "${BO_API_DOCS_PASSWORD:-}"
+  boOrigin: "${BO_ORIGIN:-http://localhost:4103}"
+  apiOrigin: "${BO_API_BASE_URL:-http://localhost:4104}"
+  development: "${BO_API_DEVELOPMENT:-false}"
+  trustedProxyCIDRs: []
+  csrfSecret: "${BO_API_CSRF_SECRET}"
+api:
+  host: "${PUBLIC_API_HOST:-0.0.0.0}"
+  port: "${PUBLIC_API_PORT:-4102}"
+  readTimeoutSeconds: "${PUBLIC_API_READ_TIMEOUT_SECONDS:-15}"
+  writeTimeoutSeconds: "${PUBLIC_API_WRITE_TIMEOUT_SECONDS:-30}"
+  idleTimeoutSeconds: "${PUBLIC_API_IDLE_TIMEOUT_SECONDS:-60}"
+  shutdownTimeoutSeconds: "${PUBLIC_API_SHUTDOWN_TIMEOUT_SECONDS:-10}"
+  docs:
+    basicAuth:
+      enabled: "${PUBLIC_API_DOCS_ENABLED:-false}"
+      username: "${PUBLIC_API_DOCS_USERNAME:-}"
+      password: "${PUBLIC_API_DOCS_PASSWORD:-}"
+webApi:
+  host: "${WEB_API_HOST:-0.0.0.0}"
+  port: "${WEB_API_PORT:-4101}"
+  readTimeoutSeconds: "${WEB_API_READ_TIMEOUT_SECONDS:-15}"
+  writeTimeoutSeconds: "${WEB_API_WRITE_TIMEOUT_SECONDS:-30}"
+  idleTimeoutSeconds: "${WEB_API_IDLE_TIMEOUT_SECONDS:-60}"
+  shutdownTimeoutSeconds: "${WEB_API_SHUTDOWN_TIMEOUT_SECONDS:-10}"
+  docs:
+    basicAuth:
+      enabled: "${WEB_API_DOCS_ENABLED:-false}"
+      username: "${WEB_API_DOCS_USERNAME:-}"
+      password: "${WEB_API_DOCS_PASSWORD:-}"
+  identity:
+    authOrigin: "${IDENTITY_AUTH_ORIGIN}"
+    development: "${IDENTITY_DEVELOPMENT:-false}"
+    trustedProxyCIDRs: []
+    csrfKey: "${IDENTITY_CSRF_KEY}"
+    limiterKey: "${IDENTITY_LIMITER_KEY}"
+    email:
+      from: "${IDENTITY_EMAIL_FROM}"
+      resendKey: "${IDENTITY_RESEND_KEY}"

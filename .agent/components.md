@@ -1,0 +1,85 @@
+# Shared component ownership
+
+`packages/ui` owns reusable presentation primitives installed from
+[Vandor UI](https://vandor-ui.vercel.app/llms-full.txt). `apps/storybook` owns the
+preview host, not component source. `apps/web` owns route adapters and feature/page
+compositions, as does `apps/bo` for its independent runtime. Colocate route-specific
+presentation and stories under the owning route's `-components`;
+promote feature compositions only when genuinely reusable. Small UI primitives
+(buttons, inputs, selects, badges, and similar controls) belong in
+`packages/ui`, not application-local copies.
+
+## Installation and imports
+
+- All application primitive UI, including existing controls and stories, uses direct
+  `@repo/ui/<name>` entrypoints. The full 36-component Vandor catalog, portable
+  stories, optional Query adapters, and the local Table primitive are installed
+  by explicit user request. See the package README for exports and adaptations.
+- Run registry commands inside `packages/ui`, using its `components.json`.
+  Future additions should install only needed components and dependencies. Consult Vandor documentation
+  for the actual API; generic shadcn guidance does not override registry contracts.
+- Preview installs/updates with `--dry-run` and `--diff`. Read generated files,
+  check dependency closure and imports, then preserve local adaptations. Never
+  blindly overwrite customized source or disable TypeScript strictness.
+- Add explicit package exports for new public components. Keep helpers internal;
+  no root barrel importing the entire catalog. Internal imports must resolve in
+  both web and Storybook without relying on web's `@` alias. Prefer relative
+  imports inside this package.
+- If a needed primitive is not installed, install it into `packages/ui`
+  and expose its public entrypoint before use; do not create a web-local fallback
+  or assume the full catalog is available.
+- Do not render native controls in applications, including legacy UI and stories:
+  buttons, inputs, selects/options/groups, textareas, labels, dialogs,
+  details/summary, table elements/captions, and progress/meter. Native implementations
+  belong only in `packages/ui`. Intrinsic aliases, motion wrappers, JSX
+  factories, local copies/re-exports, and direct Base UI/Radix imports are not escapes.
+  Structural HTML, forms, headings, lists, links, and SVG remain allowed; feature
+  compositions and unrelated visual presentation remain application-owned.
+- Run `task check:ui-primitives`; root/web typechecks include this static source
+  policy check. It scans `apps` including stories, excluding test/spec files and
+  generated/dependency directories. It catches common static bypasses, not arbitrary
+  runtime indirection; source review must still uphold the policy.
+
+## Styling and composition
+
+- Choose interaction containers using [the UX contract](../docs/frontend/FRONTEND_CONTRACT.md).
+  Drawer supports directional panels; a component's availability does not establish
+  that a drawer is the right interaction container for a feature.
+- Import `@repo/ui/styles.css` after Tailwind in the consumer stylesheet.
+  It registers shared source and extra semantic utilities. Brand color values come
+  from `@repo/brand/tokens.css`; consumers own utility mappings, not duplicate
+  palettes. Brand also owns the base radius and its Tailwind scale; do not redefine
+  radius tokens in consumers. Preserve circular shapes and intentional joined edges.
+  Storybook imports web's stylesheet so both use the same tokens.
+- Use component variants/sizes and semantic colors first. Prefer `className` for
+  layout. Change shared visual defaults in the component/token owner instead of
+  repeating per-page color overrides.
+- Keep components prop-driven, browser-safe, and independent of auth, routes,
+  Prisma, real API clients, credentials, and product data fetching.
+- Check composition per component. Vandor Button supports `asChild`, `render`,
+  `nativeButton`, `isLoading`, and `whileTap`; other Base UI components may not
+  match local Radix APIs. For navigation, prefer Button `asChild` with a real link
+  so native link semantics remain intact. `variant="link"` alone is still a button.
+- Use `isLoading` for pending Button actions, `disabled` for unavailable actions,
+  explicit `type="submit"` in forms, and `aria-label` on icon-only buttons.
+  Native `disabled` does not disable an `asChild` link. Preserve reduced-motion,
+  visible keyboard focus, labels, and safe accessible feedback.
+- Providers are consumer-owned; installing a component never implies its required
+  providers or backend features are available.
+
+## Stories and verification
+
+All TanStack Start consumers follow [routing ownership](frontend/routing.md) and
+[story organization](frontend/stories.md): English URLs, feature-local presentation and
+stories, component-accurate metadata and app/area/page groups. UI language is a
+separate decision. Avoid app-root catch-all files spanning unrelated features.
+
+Keep `*.stories.tsx` beside the actual shared component. Install upstream portable
+stories when available, then add relevant consumer cases rather than duplicating
+the component implementation. Stories import relatively or through public package
+exports, use deterministic local state, and never call production APIs.
+
+Follow [verification.md](verification.md): typecheck the owner and consumers and
+verify affected stories in the ownership-safe Storybook on port 6006. No automatic
+lint/build or system verification gates. Record local source adaptations and blocked checks
+in the package README. Do not claim browser acceptance from typecheck/build alone.

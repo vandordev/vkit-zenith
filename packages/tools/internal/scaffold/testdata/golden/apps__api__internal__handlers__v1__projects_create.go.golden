@@ -1,0 +1,41 @@
+package v1
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+)
+
+type V1ProjectsCreateRequest struct {
+	Name string `json:"name" minLength:"1" maxLength:"200"`
+}
+
+type V1ProjectsCreateBody struct {
+	ID string `json:"id" format:"uuid"`
+}
+
+type V1ProjectsCreateOutput struct{ Body V1ProjectsCreateBody }
+
+type V1ProjectsCreateInput struct {
+	Authorization string `header:"Authorization" hidden:"true"`
+	Body          V1ProjectsCreateRequest
+}
+
+//vkit:handler
+func NewCreateProjects(api huma.API) error {
+	huma.Register(api, huma.Operation{
+		OperationID: "createProjects", Method: http.MethodPost, Path: "/v1/projects",
+		Security: []map[string][]string{{"bearerAuth": {}}},
+		Errors:   []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict, http.StatusNotImplemented},
+	}, func(ctx context.Context, in *V1ProjectsCreateInput) (*V1ProjectsCreateOutput, error) {
+		// The key's organization is the tenant the usecase acts for (ADR-0002).
+		if _, err := bearerOrg(in.Authorization); err != nil {
+			return nil, err
+		}
+		// Call the application usecase (`task create:usecase`); handlers never write business
+		// data themselves (ADR-0004). Map its errors with this API's existing error helper.
+		return nil, Problem(http.StatusNotImplemented, "not_implemented")
+	})
+	return nil
+}

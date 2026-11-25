@@ -1,0 +1,13 @@
+version: "2"
+sql:
+  - engine: postgresql
+    schema: ../db/migrations
+    queries:
+      - staff
+      - customers
+      - identity
+    gen:
+      go:
+        package: persistence
+        out: internal/persistence
+        sql_package: pgx/v5

@@ -1,0 +1,146 @@
+{
+  "count": 21,
+  "table_introduced_in": {
+    "auth_sessions": 1,
+    "identity_limiter_buckets": 1,
+    "email_action_tokens": 1,
+    "platform_staff_auth_buckets": 1,
+    "platform_staff": 1,
+    "audit_events": 1,
+    "users": 1,
+    "identity_enrollment_receipts": 1,
+    "platform_staff_credentials": 1,
+    "platform_staff_sessions": 1,
+    "organization_memberships": 1,
+    "identity_limiter_control": 1,
+    "platform_staff_auth_control": 1,
+    "organizations": 1,
+    "password_credentials": 1,
+    "api_keys": 1,
+    "river_migration": 1,
+    "river_job": 1,
+    "river_leader": 1,
+    "river_queue": 1,
+    "river_notification": 1
+  },
+  "constraint_introduced_in": {
+    "platform_staff": {
+      "email_check": 1,
+      "email_key": 1,
+      "name_check": 1
+    },
+    "users": {
+      "telephone_check": 1,
+      "identity_version_check": 1
+    },
+    "password_credentials": {
+      "generation_check": 1
+    },
+    "email_action_tokens": {
+      "binding_check": 1,
+      "lifetime_check": 1
+    },
+    "auth_sessions": {
+      "identity_check": 1
+    }
+  },
+  "constraint_removed_in": {},
+  "excluded": [
+    "goose_db_version"
+  ],
+  "groups": {
+    "identity": {
+      "positive_negative_tests": [
+        "TestSchemaIdentity",
+        "TestSchemaLifecycle",
+        "TestSQLCPlatformRoundTrip"
+      ],
+      "tables": {
+        "users": "pkey email_normalized_key status_check email_check email_normalized_check display_name_check times_check telephone_check identity_version_check",
+        "password_credentials": "pkey hash_check time_check user_fkey generation_check",
+        "email_action_tokens": "pkey purpose_check email_check hash_key hash_check user_fkey times_check binding_check lifetime_check",
+        "auth_sessions": "pkey hash_key hash_check user_fkey id_user_key times_check identity_check",
+        "organizations": "pkey name_check slug_key slug_check status_check times_check logo_check",
+        "organization_memberships": "pkey status_check organization_fkey user_fkey org_user_key id_org_key owner_check times_check role_check"
+      }
+    },
+    "customer_auth": {
+      "positive_negative_tests": [
+        "TestAuthSchemaTelephone",
+        "TestAuthSchemaBoundedState",
+        "TestAuthSchemaGenerationBindings",
+        "TestAuthSchemaNineMigrationUpgrade",
+        "TestAuthSchemaRollingElapsed",
+        "TestAuthSchemaLimiterAccounting"
+      ],
+      "tables": {
+        "identity_enrollment_receipts": "pkey hash_check user_fkey binding_check times_check",
+        "identity_limiter_control": "pkey singleton_check count_check",
+        "identity_limiter_buckets": "pkey hash_check attempts_check times_check"
+      }
+    },
+    "access": {
+      "positive_negative_tests": [
+        "TestSchemaStaffAuth"
+      ],
+      "tables": {
+        "platform_staff": "pkey status_check role_check times_check email_check email_key name_check"
+      }
+    },
+    "staff_auth": {
+      "positive_negative_tests": [
+        "TestSchemaStaffAuth"
+      ],
+      "tables": {
+        "platform_staff_credentials": "pkey hash_check time_check staff_fkey",
+        "platform_staff_sessions": "pkey hash_key hash_check staff_fkey times_check",
+        "platform_staff_auth_control": "pkey singleton_check epoch_check time_check",
+        "platform_staff_auth_buckets": "pkey purpose_check dimension_check hash_check attempts_check times_check"
+      }
+    },
+    "audit": {
+      "positive_negative_tests": [
+        "TestSchemaAudit",
+        "TestSchemaAuditNonowner",
+        "TestSchemaAuditAtomicity"
+      ],
+      "tables": {
+        "audit_events": "pkey time_check action_check outcome_check detail_check actor_check target_check actor_user_fkey actor_staff_fkey organization_fkey"
+      }
+    },
+    "river": {
+      "positive_negative_tests": [
+        "TestSchemaRiver"
+      ],
+      "tables": {
+        "river_migration": "pkey1 line_length version_gte_1",
+        "river_job": "pkey finalized_or_finalized_at_null max_attempts_is_positive priority_in_range queue_length kind_length",
+        "river_leader": "pkey name_length leader_id_length",
+        "river_queue": "pkey",
+        "river_notification": "pkey topic_length"
+      }
+    },
+    "api_keys": {
+      "positive_negative_tests": [
+        "TestSchemaAPIKeys"
+      ],
+      "tables": {
+        "api_keys": "pkey name_check prefix_check hash_key hash_check organization_fkey times_check"
+      }
+    }
+  },
+  "unique_indexes": [
+    "river_job_unique_idx"
+  ],
+  "trigger_tests": {
+    "owner": [
+      "TestSchemaOwner",
+      "TestSchemaOwnerRaces"
+    ],
+    "audit": [
+      "TestSchemaAuditNonowner",
+      "TestSchemaAuditAtomicity"
+    ]
+  },
+  "inventory_rule": "Constraint names expand table + underscore + suffix. FK catalog definitions include scoped columns and RESTRICT; trigger and index names are independently reconciled with canonical DDL by TestSchemaManifest. Named tests cover group positive/negative contracts, not a claim that every PostgreSQL built-in receives a separate test."
+}

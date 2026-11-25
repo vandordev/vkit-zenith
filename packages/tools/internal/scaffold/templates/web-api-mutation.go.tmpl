@@ -1,0 +1,30 @@
+package v1
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+	"{{.Module}}/apps/web-api/internal/orgaccess"
+	"{{.Module}}/packages/application/customers"
+)
+{{template "request" .}}{{template "body" .}}
+type {{.Type}}Input struct {
+	OrganizationID string `path:"organizationId"`{{template "params" .}}
+	Origin         string `header:"Origin"`
+	CSRF           string `header:"X-CSRF-Token"`
+	Body           {{.Type}}Request
+}
+
+//vkit:handler
+func {{.Constructor}}(api huma.API, boundary *orgaccess.Boundary) error {
+	huma.Register(api, huma.Operation{OperationID: "{{.OperationID}}", Method: http.{{.MethodConst}}, Path: "{{.Path}}", Errors: []int{401, 403, 404, 409, 422, 501, 503}}, func(ctx context.Context, in *{{.Type}}Input) (*{{.Type}}Output, error) {
+		// Pick the permission this action needs from customers/roles.go.
+		if _, err := boundary.Write(ctx, in.OrganizationID, customers.PermissionOrganizationManage, orgaccess.WriteHeaders{Origin: in.Origin, CSRF: in.CSRF}); err != nil {
+			return nil, err
+		}
+{{- template "todo-mutation" .}}
+		return nil, huma.Error501NotImplemented("Not implemented")
+	})
+	return nil
+}

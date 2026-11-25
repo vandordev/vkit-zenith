@@ -1,0 +1,13 @@
+.git/
+.turbo/
+node_modules/
+dist/
+.output/
+.vite/
+coverage/
+storybook-static/
+apps/web/src/routeTree.gen.ts
+apps/bo/src/routeTree.gen.ts
+apps/web/src/lib/api/generated/
+apps/bo/src/lib/api/generated/
+*.generated.ts

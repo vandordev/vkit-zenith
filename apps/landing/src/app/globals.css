@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "@repo/brand/tokens.css";
+@import "@repo/ui/styles.css";
+@import "./landing.css";
+
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-border: var(--border);
+	--color-ring: var(--ring);
+}
+
+@layer base {
+	body {
+		margin: 0;
+		background: var(--background);
+		color: var(--foreground);
+		font-family: var(--font-sans);
+	}
+}

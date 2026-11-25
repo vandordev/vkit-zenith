@@ -1,0 +1,106 @@
+diff --git a/node_modules/deepmerge/.bun-tag-b8e41b0e12a6b772 b/.bun-tag-b8e41b0e12a6b772
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/dist/cjs.js b/dist/cjs.js
+index 7c36cbdd06cc22c92d590be3f87a08a91ca06b40..93cb84302573db54cd06deeeed503e18edbbe7d1 100644
+--- a/dist/cjs.js
++++ b/dist/cjs.js
+@@ -76,11 +76,16 @@ function propertyIsUnsafe(target, key) {
+ 			&& Object.propertyIsEnumerable.call(target, key)) // and also unsafe if they're nonenumerable.
+ }
+ 
++// Local security backport: GHSA-gcqx-w48m-w2h4. Avoid inherited setters.
++function setOwn(destination, key, value) {
++	Object.defineProperty(destination, key, { value: value, enumerable: true, writable: true, configurable: true });
++}
++
+ function mergeObject(target, source, options) {
+ 	var destination = {};
+ 	if (options.isMergeableObject(target)) {
+ 		getKeys(target).forEach(function(key) {
+-			destination[key] = cloneUnlessOtherwiseSpecified(target[key], options);
++			setOwn(destination, key, cloneUnlessOtherwiseSpecified(target[key], options));
+ 		});
+ 	}
+ 	getKeys(source).forEach(function(key) {
+@@ -89,9 +94,9 @@ function mergeObject(target, source, options) {
+ 		}
+ 
+ 		if (propertyIsOnObject(target, key) && options.isMergeableObject(source[key])) {
+-			destination[key] = getMergeFunction(key, options)(target[key], source[key], options);
++			setOwn(destination, key, getMergeFunction(key, options)(target[key], source[key], options));
+ 		} else {
+-			destination[key] = cloneUnlessOtherwiseSpecified(source[key], options);
++			setOwn(destination, key, cloneUnlessOtherwiseSpecified(source[key], options));
+ 		}
+ 	});
+ 	return destination
+diff --git a/dist/umd.js b/dist/umd.js
+index 4071e7c56ec8e5273fe166f6e723ac460fab8b72..002877babc60f157c9b970a40ee2278a78534267 100644
+--- a/dist/umd.js
++++ b/dist/umd.js
+@@ -80,11 +80,16 @@
+ 				&& Object.propertyIsEnumerable.call(target, key)) // and also unsafe if they're nonenumerable.
+ 	}
+ 
++	// Local security backport: GHSA-gcqx-w48m-w2h4. Avoid inherited setters.
++	function setOwn(destination, key, value) {
++		Object.defineProperty(destination, key, { value: value, enumerable: true, writable: true, configurable: true });
++	}
++
+ 	function mergeObject(target, source, options) {
+ 		var destination = {};
+ 		if (options.isMergeableObject(target)) {
+ 			getKeys(target).forEach(function(key) {
+-				destination[key] = cloneUnlessOtherwiseSpecified(target[key], options);
++				setOwn(destination, key, cloneUnlessOtherwiseSpecified(target[key], options));
+ 			});
+ 		}
+ 		getKeys(source).forEach(function(key) {
+@@ -93,9 +98,9 @@
+ 			}
+ 
+ 			if (propertyIsOnObject(target, key) && options.isMergeableObject(source[key])) {
+-				destination[key] = getMergeFunction(key, options)(target[key], source[key], options);
++				setOwn(destination, key, getMergeFunction(key, options)(target[key], source[key], options));
+ 			} else {
+-				destination[key] = cloneUnlessOtherwiseSpecified(source[key], options);
++				setOwn(destination, key, cloneUnlessOtherwiseSpecified(source[key], options));
+ 			}
+ 		});
+ 		return destination
+diff --git a/index.js b/index.js
+index 77968aed5d456cccc294f60912ef381fa1e52a7b..958d759d49c3efa4a7662ac76b8d46163bbf25f8 100644
+--- a/index.js
++++ b/index.js
+@@ -51,11 +51,17 @@ function propertyIsUnsafe(target, key) {
+ 			&& Object.propertyIsEnumerable.call(target, key)) // and also unsafe if they're nonenumerable.
+ }
+ 
++// Local security backport: GHSA-gcqx-w48m-w2h4. Define own data properties
++// instead of invoking inherited setters such as Object.prototype.__proto__.
++function setOwn(destination, key, value) {
++	Object.defineProperty(destination, key, { value: value, enumerable: true, writable: true, configurable: true })
++}
++
+ function mergeObject(target, source, options) {
+ 	var destination = {}
+ 	if (options.isMergeableObject(target)) {
+ 		getKeys(target).forEach(function(key) {
+-			destination[key] = cloneUnlessOtherwiseSpecified(target[key], options)
++			setOwn(destination, key, cloneUnlessOtherwiseSpecified(target[key], options))
+ 		})
+ 	}
+ 	getKeys(source).forEach(function(key) {
+@@ -64,9 +70,9 @@ function mergeObject(target, source, options) {
+ 		}
+ 
+ 		if (propertyIsOnObject(target, key) && options.isMergeableObject(source[key])) {
+-			destination[key] = getMergeFunction(key, options)(target[key], source[key], options)
++			setOwn(destination, key, getMergeFunction(key, options)(target[key], source[key], options))
+ 		} else {
+-			destination[key] = cloneUnlessOtherwiseSpecified(source[key], options)
++			setOwn(destination, key, cloneUnlessOtherwiseSpecified(source[key], options))
+ 		}
+ 	})
+ 	return destination

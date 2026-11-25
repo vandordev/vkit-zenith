@@ -1,0 +1,127 @@
+@source "./**/*.{ts,tsx}";
+@custom-variant vandor-dark (&:where(.dark, .dark *));
+
+@keyframes zenith-loader-draw {
+	0% {
+		stroke-dashoffset: 1;
+		opacity: 1;
+	}
+	42% {
+		stroke-dashoffset: 0;
+		opacity: 1;
+	}
+	58%,
+	82% {
+		stroke-dashoffset: 0;
+		opacity: 0;
+	}
+	100% {
+		stroke-dashoffset: 1;
+		opacity: 0;
+	}
+}
+
+@keyframes zenith-loader-fill {
+	0%,
+	38%,
+	100% {
+		opacity: 0;
+	}
+	58%,
+	82% {
+		opacity: 1;
+	}
+}
+
+@layer components {
+	[data-slot="zenith-loader-outline"] {
+		opacity: 0;
+		stroke-dasharray: 1;
+		stroke-dashoffset: 1;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		[data-slot="zenith-loader-outline"] {
+			animation: zenith-loader-draw 2s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+		}
+
+		[data-slot="zenith-loader-logo"] {
+			animation: zenith-loader-fill 2s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+		}
+	}
+}
+
+@layer base {
+	*,
+	::before,
+	::after,
+	::backdrop {
+		border-color: var(--border);
+	}
+
+	/* Browsers paint autofilled fields with their own tinted background, which clashes with the field surface in
+	   both themes. The UA background cannot be overridden directly, so its transition never finishes; the field keeps
+	   its own surface and the text keeps the theme color. */
+	input:-webkit-autofill,
+	input:-webkit-autofill:hover,
+	input:-webkit-autofill:focus,
+	input:-webkit-autofill:active {
+		-webkit-text-fill-color: var(--foreground);
+		caret-color: var(--foreground);
+		transition:
+			background-color 600000s 0s,
+			color 600000s 0s;
+	}
+
+	/* Scrollbars follow the palette in both themes (scrollbar-color inherits to every scroll area):
+	 * the field-edge token for the thumb, no track. */
+	:root {
+		scrollbar-color: var(--input) transparent;
+	}
+
+	/* Tailwind v4 resets buttons to the default cursor; every enabled clickable control points.
+	 * :where keeps specificity at zero, so component utilities (cursor-not-allowed) still win. */
+	:where(
+			button,
+			summary,
+			select,
+			[role="button"],
+			[role="tab"],
+			[role="option"],
+			[role="menuitem"],
+			[role="menuitemcheckbox"],
+			[role="menuitemradio"],
+			[role="checkbox"],
+			[role="radio"],
+			[role="switch"],
+			[role="combobox"]:not(input),
+			input:is([type="checkbox"], [type="radio"], [type="file"], [type="submit"], [type="button"], [type="reset"])
+		):not(:disabled, [aria-disabled="true"], [data-disabled]) {
+		cursor: pointer;
+	}
+}
+
+@theme inline {
+	--color-sidebar: var(--sidebar);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-input: var(--input);
+	--color-success: var(--success);
+	--color-success-foreground: var(--success-foreground);
+	--color-success-text: var(--success-text);
+	--color-info: var(--info);
+	--color-info-foreground: var(--info-foreground);
+	--color-info-text: var(--info-text);
+	--color-warning: var(--warning);
+	--color-warning-foreground: var(--warning-foreground);
+	--color-warning-text: var(--warning-text);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-destructive-text: var(--destructive-text);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+}

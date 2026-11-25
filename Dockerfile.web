@@ -1,0 +1,34 @@
+# syntax=docker/dockerfile:1.11
+FROM oven/bun:1.4.2-alpine AS base
+WORKDIR /app
+FROM base AS prune
+COPY . .
+RUN bun --no-env-file x turbo@2.11.10 prune web --docker
+FROM base AS deps
+COPY --from=prune /app/out/json/ ./
+RUN bun install --frozen-lockfile --ignore-scripts
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=prune /app/out/full/ ./
+COPY config ./config
+ENV NODE_ENV=production
+# Prune contains the committed route tree and consumer SDK, including nested
+# packages/config/js. No Go toolchain or generation against a live API is needed.
+RUN bun --no-env-file run --cwd apps/web build
+FROM base AS runtime-deps
+COPY --from=prune /app/out/json/ ./
+RUN bun install --production --frozen-lockfile --ignore-scripts
+FROM oven/bun:1.4.2-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup -S app && adduser -S app -G app
+COPY --from=runtime-deps --chown=app:app /app/node_modules ./node_modules
+COPY --from=builder --chown=app:app /app/apps/web/.output ./.output
+COPY --from=builder --chown=app:app /app/packages/config/js ./packages/config/js
+COPY --from=builder --chown=app:app /app/packages/brand ./packages/brand
+COPY --from=builder --chown=app:app /app/packages/ui ./packages/ui
+COPY --from=builder --chown=app:app /app/config ./config
+COPY --from=builder --chown=app:app /app/package.json ./package.json
+USER app
+EXPOSE 4100
+CMD ["bun", "--no-env-file", "run", "packages/config/js/src/run.ts", "--runtime", "web", "--root", "/app", "--", "bun", ".output/server/index.mjs"]

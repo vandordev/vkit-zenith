@@ -1,0 +1,439 @@
+"use client";
+
+import { mergeProps } from "@base-ui/react/merge-props";
+import { Select as SelectPrimitive } from "@base-ui/react/select";
+import { useRender } from "@base-ui/react/use-render";
+import { cn } from "cn";
+import { motion as brandMotion } from "@repo/brand/motion";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
+import { createContext, useContext, useId, useRef } from "react";
+import type { AriaAttributes, ComponentProps, ReactElement, ReactNode } from "react";
+import { FieldOutline } from "./field-outline";
+import { fieldSurfaceClassName } from "./input";
+
+const PopupElement = ({ nativeProps, ref, ...props }: ComponentProps<"div"> & { nativeProps: ComponentProps<"div"> }) =>
+	useRender({
+		props: { ...nativeProps },
+		ref: [nativeProps.ref ?? null, ref ?? null],
+		render: <div {...props} />,
+	});
+const MotionPopupElement = motion.create(PopupElement);
+
+const TriggerElement = ({
+	nativeProps,
+	state,
+	render,
+	ref,
+	...props
+}: ComponentProps<"button"> & {
+	nativeProps: ComponentProps<"button">;
+	state: SelectPrimitive.Trigger.State;
+	render?: SelectPrimitive.Trigger.Props["render"];
+}) =>
+	useRender({
+		defaultTagName: "button",
+		props: mergeProps({ ...nativeProps }, { ...props }),
+		ref: ref ?? null,
+		render,
+		state: { ...state },
+	});
+const MotionTriggerElement = motion.create(TriggerElement);
+
+const SelectActionsContext = createContext<(() => void) | null>(null);
+
+const SelectRoot = <Value, Multiple extends boolean | undefined = false>({
+	actionsRef,
+	children,
+	...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) => {
+	const internalActions = useRef<SelectPrimitive.Root.Actions | null>(null);
+	const actions = actionsRef ?? internalActions;
+	return (
+		<SelectActionsContext.Provider value={() => actions.current?.unmount()}>
+			<SelectPrimitive.Root {...props} actionsRef={actions}>
+				{children}
+			</SelectPrimitive.Root>
+		</SelectActionsContext.Provider>
+	);
+};
+
+const SelectGroup = ({ className, ...props }: SelectPrimitive.Group.Props) => (
+	<SelectPrimitive.Group data-slot="select-group" className={cn("scroll-my-1 p-1", className)} {...props} />
+);
+
+const SelectValue = ({ className, ...props }: SelectPrimitive.Value.Props) => (
+	<SelectPrimitive.Value
+		data-slot="select-value"
+		className={cn("flex min-w-0 flex-1 items-center gap-2 text-left data-placeholder:text-muted-foreground", className)}
+		{...props}
+	/>
+);
+
+const SelectTrigger = ({
+	className,
+	size = "default",
+	children,
+	render,
+	...props
+}: SelectPrimitive.Trigger.Props & { size?: "sm" | "default" }) => {
+	const reduceMotion = useReducedMotion();
+	return (
+		<SelectPrimitive.Trigger
+			data-slot="select-trigger"
+			data-size={size}
+			className={cn(
+				fieldSurfaceClassName,
+				"flex w-fit cursor-pointer items-center justify-between gap-2 rounded-md border border-input px-3 py-2 text-sm whitespace-nowrap outline-none transition-[background-color,border-color,box-shadow] duration-(--motion-base) ease-(--ease-out) select-none hover:not-disabled:not-data-disabled:not-aria-disabled:bg-accent/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-disabled:cursor-not-allowed aria-disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[size=default]:h-9 data-[size=sm]:h-8 motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+				className,
+			)}
+			{...props}
+			render={(triggerProps, state) => (
+				<MotionTriggerElement
+					nativeProps={triggerProps}
+					state={state}
+					render={render}
+					animate={{ filter: "brightness(1)", scale: 1 }}
+					whileTap={
+						state.disabled || state.readOnly || triggerProps["aria-disabled"] === true || triggerProps["aria-disabled"] === "true"
+							? undefined
+							: { filter: "brightness(0.9)", scale: reduceMotion ? 1 : 0.96 }
+					}
+					transition={{ duration: reduceMotion ? 0 : brandMotion.fast, ease: brandMotion.easeOut }}
+				>
+					{triggerProps.children}
+				</MotionTriggerElement>
+			)}
+		>
+			{children}
+			<SelectPrimitive.Icon className="text-muted-foreground transition-transform duration-(--motion-base) ease-(--ease-out) data-popup-open:rotate-180 motion-reduce:transition-none">
+				<ChevronDownIcon aria-hidden="true" />
+			</SelectPrimitive.Icon>
+		</SelectPrimitive.Trigger>
+	);
+};
+
+type SelectContentProps = Omit<SelectPrimitive.Popup.Props, "render"> &
+	Pick<SelectPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"> & { animated?: boolean };
+
+const SelectContent = ({
+	className,
+	children,
+	side = "bottom",
+	sideOffset = 4,
+	align = "start",
+	alignOffset = 0,
+	alignItemWithTrigger = false,
+	animated = true,
+	...props
+}: SelectContentProps) => {
+	const reduceMotion = useReducedMotion();
+	const unmount = useContext(SelectActionsContext);
+	return (
+		// Explicit insets avoid an end-of-container static position while keeping
+		// the portal out of flex/grid flow.
+		<SelectPrimitive.Portal style={{ left: 0, position: "absolute", top: 0 }}>
+			<SelectPrimitive.Positioner
+				positionMethod="fixed"
+				side={side}
+				sideOffset={sideOffset}
+				align={align}
+				alignOffset={alignOffset}
+				alignItemWithTrigger={alignItemWithTrigger}
+				className="isolate z-50"
+			>
+				<SelectPrimitive.Popup
+					data-slot="select-content"
+					className={cn(
+						"relative max-h-(--available-height) min-w-[max(8rem,var(--anchor-width))] origin-(--transform-origin) overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md outline-none",
+						className,
+					)}
+					{...props}
+					render={(popupProps, state) => (
+						<MotionPopupElement
+							nativeProps={popupProps}
+							initial={{
+								opacity: animated ? 0 : 1,
+								scale: animated && !reduceMotion ? 0.96 : 1,
+							}}
+							animate={{
+								opacity: state.open ? 1 : 0,
+								scale: animated && !reduceMotion && !state.open ? 0.96 : 1,
+							}}
+							transition={{
+								duration: (!animated || reduceMotion ? 0 : 1) * (state.open ? brandMotion.base : brandMotion.fast),
+								ease: brandMotion.easeOut,
+							}}
+							onAnimationComplete={() => {
+								if (!state.open) {
+									unmount?.();
+								}
+							}}
+						>
+							{popupProps.children}
+						</MotionPopupElement>
+					)}
+				>
+					<SelectPrimitive.ScrollUpArrow className="top-0 flex w-full cursor-default items-center justify-center bg-popover py-1 [&_svg]:size-4">
+						<ChevronUpIcon aria-hidden="true" />
+					</SelectPrimitive.ScrollUpArrow>
+					<SelectPrimitive.List className="max-h-[min(20rem,var(--available-height))] overflow-y-auto overscroll-contain">
+						{children}
+					</SelectPrimitive.List>
+					<SelectPrimitive.ScrollDownArrow className="bottom-0 flex w-full cursor-default items-center justify-center bg-popover py-1 [&_svg]:size-4">
+						<ChevronDownIcon aria-hidden="true" />
+					</SelectPrimitive.ScrollDownArrow>
+				</SelectPrimitive.Popup>
+			</SelectPrimitive.Positioner>
+		</SelectPrimitive.Portal>
+	);
+};
+
+const SelectLabel = ({ className, ...props }: SelectPrimitive.GroupLabel.Props) => (
+	<SelectPrimitive.GroupLabel data-slot="select-label" className={cn("px-2 py-1.5 text-xs text-muted-foreground", className)} {...props} />
+);
+
+const SelectItem = ({ className, children, ...props }: SelectPrimitive.Item.Props) => (
+	<SelectPrimitive.Item
+		data-slot="select-item"
+		className={cn(
+			"relative flex w-full cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-none select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:cursor-not-allowed data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+			className,
+		)}
+		{...props}
+	>
+		<SelectPrimitive.ItemText className="flex min-w-0 flex-1 items-center gap-2">{children}</SelectPrimitive.ItemText>
+		<SelectPrimitive.ItemIndicator className="pointer-events-none absolute right-2 flex items-center justify-center">
+			<CheckIcon aria-hidden="true" />
+		</SelectPrimitive.ItemIndicator>
+	</SelectPrimitive.Item>
+);
+
+const SelectSeparator = ({ className, ...props }: SelectPrimitive.Separator.Props) => (
+	<SelectPrimitive.Separator data-slot="select-separator" className={cn("pointer-events-none my-1 h-px bg-border", className)} {...props} />
+);
+
+const SelectScrollUpButton = ({ className, ...props }: SelectPrimitive.ScrollUpArrow.Props) => (
+	<SelectPrimitive.ScrollUpArrow
+		data-slot="select-scroll-up-button"
+		className={cn("top-0 flex w-full cursor-default items-center justify-center bg-popover py-1 [&_svg]:size-4", className)}
+		{...props}
+	>
+		<ChevronUpIcon aria-hidden="true" />
+	</SelectPrimitive.ScrollUpArrow>
+);
+
+const SelectScrollDownButton = ({ className, ...props }: SelectPrimitive.ScrollDownArrow.Props) => (
+	<SelectPrimitive.ScrollDownArrow
+		data-slot="select-scroll-down-button"
+		className={cn("bottom-0 flex w-full cursor-default items-center justify-center bg-popover py-1 [&_svg]:size-4", className)}
+		{...props}
+	>
+		<ChevronDownIcon aria-hidden="true" />
+	</SelectPrimitive.ScrollDownArrow>
+);
+
+interface SelectOption<Value extends string | number = string> {
+	label: string;
+	value: Value;
+	disabled?: boolean;
+}
+
+interface SelectOptionGroup<Value extends string | number = string, Option extends SelectOption<Value> = SelectOption<Value>> {
+	label: string;
+	items: readonly Option[];
+}
+
+interface SelectTriggerContext<Value extends string | number = string, Multiple extends boolean | undefined = false> {
+	value: Multiple extends true ? Value[] : Value | null;
+	selectedLabel: string | null;
+	placeholder: ReactNode;
+	open: boolean;
+	disabled: boolean;
+}
+
+type SelectProps<
+	Value extends string | number = string,
+	Multiple extends boolean | undefined = false,
+	Option extends SelectOption<Value> = SelectOption<Value>,
+> = Omit<SelectPrimitive.Root.Props<NoInfer<Value>, Multiple>, "children" | "items"> &
+	AriaAttributes & {
+		data: readonly (Option | SelectOptionGroup<Value, Option>)[];
+		placeholder?: ReactNode;
+		label?: string;
+		labelStyle?: "static" | "floating";
+		size?: ComponentProps<typeof SelectTrigger>["size"];
+		className?: string;
+		animated?: boolean;
+		trigger?: ReactElement | ((context: SelectTriggerContext<Value, Multiple>) => ReactElement);
+		triggerProps?: Omit<ComponentProps<typeof SelectTrigger>, "children" | "className" | "size" | "render">;
+		contentProps?: Omit<SelectContentProps, "children" | "animated">;
+		renderItem?: (item: Option) => ReactNode;
+	};
+
+type SelectDataOption<Entry> = Entry extends {
+	items: readonly (infer Option)[];
+}
+	? Option
+	: Entry;
+
+const Select = <
+	const Data extends readonly (SelectOption<string | number> | SelectOptionGroup<string | number>)[],
+	Multiple extends boolean | undefined = false,
+>({
+	data,
+	placeholder,
+	label,
+	labelStyle = "floating",
+	size,
+	className,
+	animated,
+	trigger,
+	triggerProps,
+	contentProps,
+	renderItem,
+	...props
+}: Omit<SelectProps<SelectDataOption<Data[number]>["value"], Multiple, SelectDataOption<Data[number]>>, "data"> & { data: Data }) => {
+	type Option = SelectDataOption<Data[number]>;
+	const labelId = useId();
+	// Keep adjacent ungrouped options together, preserving mixed data order.
+	const groups: { label?: string; items: Option[] }[] = [];
+	// Data's constraint validates the shape; the conditional type preserves option metadata.
+	const entries = data as unknown as readonly (Option | SelectOptionGroup<Option["value"], Option>)[];
+	for (const entry of entries) {
+		if ("items" in entry) {
+			groups.push({ items: [...entry.items], label: entry.label });
+		} else {
+			const previous = groups.at(-1);
+			if (previous && previous.label === undefined) {
+				previous.items.push(entry);
+			} else {
+				groups.push({ items: [entry] });
+			}
+		}
+	}
+	// Base UI resolves labels from a flat lookup even when data mixes groups and options.
+	const items = groups.flatMap((group) => group.items);
+	const rootProps = { ...props };
+	const ariaProps: AriaAttributes = {};
+	for (const key of Object.keys(rootProps)) {
+		if (key.startsWith("aria-")) {
+			Object.assign(ariaProps, { [key]: Reflect.get(rootProps, key) });
+			Reflect.deleteProperty(rootProps, key);
+		}
+	}
+
+	return (
+		<SelectRoot {...rootProps} items={items}>
+			{trigger === undefined ? (
+				<div className={cn(label ? "relative grid min-w-0" : "contents", label && labelStyle === "static" && "gap-1.5")}>
+					{label && (
+						<span
+							id={labelId}
+							className={cn(
+								labelStyle === "floating"
+									? "pointer-events-none absolute top-0 left-2 z-10 max-w-[calc(100%-1.5rem)] -translate-y-1/2 truncate px-1 text-xs text-foreground"
+									: "text-sm font-medium",
+							)}
+						>
+							{label}
+						</span>
+					)}
+					<SelectTrigger
+						{...triggerProps}
+						{...ariaProps}
+						aria-labelledby={ariaProps["aria-labelledby"] ?? triggerProps?.["aria-labelledby"] ?? (label ? labelId : undefined)}
+						className={cn(
+							label && labelStyle === "floating" && "peer w-full border-0 focus-visible:ring-0 data-[size=default]:h-10",
+							className,
+						)}
+						size={size}
+					>
+						<SelectValue placeholder={placeholder} />
+					</SelectTrigger>
+					{label && labelStyle === "floating" && (
+						<FieldOutline
+							label={label}
+							raised
+							className="peer-focus-visible:border-2 peer-focus-visible:border-ring peer-aria-invalid:border-destructive peer-disabled:opacity-50 peer-data-disabled:opacity-50"
+						/>
+					)}
+				</div>
+			) : (
+				<SelectPrimitive.Trigger
+					{...triggerProps}
+					{...ariaProps}
+					data-slot="select-trigger"
+					data-size={size}
+					className={className}
+					render={
+						typeof trigger === "function"
+							? (nativeProps, state) => {
+									let values: Option["value"][] = [];
+									if (Array.isArray(state.value)) {
+										values = state.value;
+									} else if (state.value !== null && state.value !== undefined) {
+										values = [state.value];
+									}
+									const labels = values.flatMap((value) => {
+										const item = items.find((option) => option.value === value);
+										return item ? [item.label] : [];
+									});
+									return (
+										<TriggerElement
+											nativeProps={nativeProps}
+											state={state}
+											render={trigger({
+												disabled: state.disabled,
+												open: state.open,
+												placeholder,
+												selectedLabel: labels.length ? labels.join(", ") : null,
+												value: state.value as SelectTriggerContext<Option["value"], Multiple>["value"],
+											})}
+										/>
+									);
+								}
+							: trigger
+					}
+				/>
+			)}
+			<SelectContent {...contentProps} animated={animated}>
+				{groups.map((group, groupIndex) => {
+					const [firstOption] = group.items;
+					let key = `empty:${groupIndex}`;
+					if (group.label !== undefined) {
+						key = `group:${group.label}`;
+					} else if (firstOption) {
+						key = `options:${typeof firstOption.value}:${firstOption.value}`;
+					}
+					return (
+						<SelectGroup key={key}>
+							{group.label !== undefined && <SelectLabel>{group.label}</SelectLabel>}
+							{group.items.map((item) => (
+								<SelectItem key={`${typeof item.value}:${item.value}`} value={item.value} label={item.label} disabled={item.disabled}>
+									{renderItem ? renderItem(item) : item.label}
+								</SelectItem>
+							))}
+						</SelectGroup>
+					);
+				})}
+			</SelectContent>
+		</SelectRoot>
+	);
+};
+
+export type { SelectProps, SelectTriggerContext, SelectOption, SelectOptionGroup };
+
+export {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectRoot,
+	SelectItem,
+	SelectLabel,
+	SelectScrollDownButton,
+	SelectScrollUpButton,
+	SelectSeparator,
+	SelectTrigger,
+	SelectValue,
+};

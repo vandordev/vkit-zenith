@@ -1,0 +1,82 @@
+# Application declarations only. No database, queue, storage, or migrations.
+# Compose substitutes selected injected variables; no env_file is mounted/copied.
+services:
+  bo:
+    build:
+      context: .
+      dockerfile: Dockerfile.bo
+    environment:
+      NODE_ENV: production
+      BO_HOST: 0.0.0.0
+      BO_PORT: 4103
+      BO_API_BASE_URL: ${BO_API_BASE_URL:?Provision a browser-reachable same-site HTTPS BO API origin}
+    ports: ["127.0.0.1:4103:4103"]
+  bo-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.bo-api
+    environment:
+      NODE_ENV: production
+      BO_API_HOST: 0.0.0.0
+      BO_API_PORT: 4104
+      BO_ORIGIN: ${BO_ORIGIN:?Provision the exact same-site HTTPS BO origin}
+      BO_API_BASE_URL: ${BO_API_BASE_URL:?Provision the same-site HTTPS BO API origin}
+      BO_API_CSRF_SECRET: ${BO_API_CSRF_SECRET:?Provision at least32 secret bytes}
+      BO_API_DEVELOPMENT: "false"
+      BO_API_DOCS_ENABLED: "true"
+      BO_API_DOCS_USERNAME: ${BO_API_DOCS_USERNAME:?Provision BO docs username}
+      BO_API_DOCS_PASSWORD: ${BO_API_DOCS_PASSWORD:?Provision BO docs password}
+      DB_DSN: ${DB_DSN:?Provision an explicit PostgreSQL DSN}
+    ports: ["127.0.0.1:4104:4104"]
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      WEB_HOST: 0.0.0.0
+      WEB_PORT: 4100
+      API_BASE_URL: ${API_BASE_URL:?Provision the exact browser-reachable same-site HTTPS merchant API origin}
+    ports: ["4100:4100"]
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PUBLIC_API_HOST: 0.0.0.0
+      PUBLIC_API_PORT: 4102
+      PUBLIC_API_READ_TIMEOUT_SECONDS: ${PUBLIC_API_READ_TIMEOUT_SECONDS:-15}
+      PUBLIC_API_WRITE_TIMEOUT_SECONDS: ${PUBLIC_API_WRITE_TIMEOUT_SECONDS:-30}
+      PUBLIC_API_IDLE_TIMEOUT_SECONDS: ${PUBLIC_API_IDLE_TIMEOUT_SECONDS:-60}
+      PUBLIC_API_SHUTDOWN_TIMEOUT_SECONDS: ${PUBLIC_API_SHUTDOWN_TIMEOUT_SECONDS:-10}
+      PUBLIC_API_DOCS_ENABLED: ${PUBLIC_API_DOCS_ENABLED:-false}
+      PUBLIC_API_DOCS_USERNAME: ${PUBLIC_API_DOCS_USERNAME:-}
+      PUBLIC_API_DOCS_PASSWORD: ${PUBLIC_API_DOCS_PASSWORD:-}
+    ports: ["4102:4102"]
+  web-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.web-api
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      WEB_API_HOST: 0.0.0.0
+      WEB_API_PORT: 4101
+      WEB_API_READ_TIMEOUT_SECONDS: ${WEB_API_READ_TIMEOUT_SECONDS:-15}
+      WEB_API_WRITE_TIMEOUT_SECONDS: ${WEB_API_WRITE_TIMEOUT_SECONDS:-30}
+      WEB_API_IDLE_TIMEOUT_SECONDS: ${WEB_API_IDLE_TIMEOUT_SECONDS:-60}
+      WEB_API_SHUTDOWN_TIMEOUT_SECONDS: ${WEB_API_SHUTDOWN_TIMEOUT_SECONDS:-10}
+      WEB_API_DOCS_ENABLED: ${WEB_API_DOCS_ENABLED:-false}
+      WEB_API_DOCS_USERNAME: ${WEB_API_DOCS_USERNAME:-}
+      WEB_API_DOCS_PASSWORD: ${WEB_API_DOCS_PASSWORD:-}
+      IDENTITY_AUTH_ORIGIN: ${IDENTITY_AUTH_ORIGIN:?Provision the exact same-site HTTPS Web origin}
+      IDENTITY_DEVELOPMENT: "false"
+      IDENTITY_CSRF_KEY: ${IDENTITY_CSRF_KEY:?Provision identity CSRF key}
+      IDENTITY_LIMITER_KEY: ${IDENTITY_LIMITER_KEY:?Provision identity limiter key}
+      IDENTITY_EMAIL_FROM: ${IDENTITY_EMAIL_FROM:?Provision sender address}
+      IDENTITY_RESEND_KEY: ${IDENTITY_RESEND_KEY:?Provision email provider credential}
+      DB_DSN: ${DB_DSN:?Provision an explicit PostgreSQL DSN}
+    ports: ["4101:4101"]

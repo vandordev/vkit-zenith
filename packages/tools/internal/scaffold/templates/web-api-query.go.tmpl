@@ -1,0 +1,26 @@
+package v1
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+	"{{.Module}}/apps/web-api/internal/orgaccess"
+	"{{.Module}}/packages/application/customers"
+)
+{{template "body" .}}
+type {{.Type}}Input struct {
+	OrganizationID string `path:"organizationId"`{{template "params" .}}{{template "page" .}}
+}
+
+//vkit:handler
+func {{.Constructor}}(api huma.API, boundary *orgaccess.Boundary) error {
+	huma.Register(api, huma.Operation{OperationID: "{{.OperationID}}", Method: http.{{.MethodConst}}, Path: "{{.Path}}", Errors: []int{401, 403, 404, 422, 501, 503}}, func(ctx context.Context, in *{{.Type}}Input) (*{{.Type}}Output, error) {
+		if _, err := boundary.Read(ctx, in.OrganizationID, customers.PermissionOrganizationRead); err != nil {
+			return nil, err
+		}
+{{- template "todo-query" .}}
+		return nil, huma.Error501NotImplemented("Not implemented")
+	})
+	return nil
+}

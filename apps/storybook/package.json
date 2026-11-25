@@ -1,0 +1,35 @@
+{
+	"name": "@repo/storybook",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "storybook dev -p 6006 --host 127.0.0.1 --ci --disable-telemetry --no-open",
+		"build": "storybook build --disable-telemetry",
+		"check-types": "tsc --noEmit",
+		"lint": "eslint .storybook test"
+	},
+	"dependencies": {
+		"@repo/brand": "*",
+		"@repo/ui": "*",
+		"@tanstack/react-router": "1.170.41",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0"
+	},
+	"devDependencies": {
+		"@repo/eslint-config": "*",
+		"@repo/typescript-config": "*",
+		"@storybook/react": "10.6.2",
+		"@storybook/react-vite": "10.6.2",
+		"@tailwindcss/vite": "^4.1.18",
+		"@types/bun": "^1.4.2",
+		"@types/node": "^22.15.3",
+		"@types/react": "19.2.2",
+		"@types/react-dom": "19.2.2",
+		"eslint": "^9.39.1",
+		"storybook": "10.6.2",
+		"tailwindcss": "^4.1.18",
+		"tinyglobby": "^0.2.17",
+		"typescript": "5.9.2",
+		"vite": "8.1.6"
+	}
+}

@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1.11
+FROM golang:1.27.3-alpine AS builder
+ENV GOWORK=off CGO_ENABLED=0
+WORKDIR /app/apps/api
+COPY apps/api/go.mod apps/api/go.sum ./
+COPY packages/config/go/go.mod packages/config/go/go.sum /app/packages/config/go/
+COPY packages/fixtures/go.mod /app/packages/fixtures/
+RUN go mod download
+COPY packages/config/go /app/packages/config/go
+COPY packages/fixtures /app/packages/fixtures
+COPY apps/api ./
+RUN go build -mod=readonly -trimpath -o /out/api .
+
+FROM gcr.io/distroless/static-debian12:nonroot AS runner
+WORKDIR /app
+ENV NODE_ENV=production ZENITH_APPLICATION_ROOT=/app
+COPY --from=builder --chown=65532:65532 /out/api /app/api
+COPY --chown=65532:65532 config/config.yaml /app/config/config.yaml
+USER 65532:65532
+EXPOSE 4102
+ENTRYPOINT ["/app/api", "--root", "/app"]

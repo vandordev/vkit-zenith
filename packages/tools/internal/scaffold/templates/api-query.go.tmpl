@@ -1,0 +1,29 @@
+package v1
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+)
+{{template "body" .}}
+type {{.Type}}Input struct {
+	Authorization string `header:"Authorization" hidden:"true"`{{template "params" .}}{{template "page" .}}
+}
+
+//vkit:handler
+func {{.Constructor}}(api huma.API) error {
+	huma.Register(api, huma.Operation{
+		OperationID: "{{.OperationID}}", Method: http.{{.MethodConst}}, Path: "{{.Path}}",
+		Security: []map[string][]string{ {"bearerAuth": {}} },
+		Errors:   []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusNotImplemented},
+	}, func(ctx context.Context, in *{{.Type}}Input) (*{{.Type}}Output, error) {
+		// The key's organization scopes every read (ADR-0002).
+		if _, err := bearerOrg(in.Authorization); err != nil {
+			return nil, err
+		}
+{{- template "todo-query" .}}
+		return nil, Problem(http.StatusNotImplemented, "not_implemented")
+	})
+	return nil
+}

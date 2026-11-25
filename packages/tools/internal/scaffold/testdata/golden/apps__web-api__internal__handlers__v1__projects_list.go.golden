@@ -1,0 +1,44 @@
+package v1
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/vandordev/vkit-zenith/apps/web-api/internal/orgaccess"
+	"github.com/vandordev/vkit-zenith/packages/application/customers"
+)
+
+type V1ProjectsListItem struct {
+	ID string `json:"id" format:"uuid"`
+}
+type V1ProjectsListPagination struct {
+	Page     int    `json:"page"`
+	PageSize int    `json:"pageSize"`
+	Total    string `json:"total"`
+}
+type V1ProjectsListBody struct {
+	Items      []V1ProjectsListItem     `json:"items" nullable:"false"`
+	Pagination V1ProjectsListPagination `json:"pagination"`
+}
+
+type V1ProjectsListOutput struct{ Body V1ProjectsListBody }
+
+type V1ProjectsListInput struct {
+	OrganizationID string `path:"organizationId"`
+	Page           int    `query:"page" minimum:"1" default:"1"`
+	PageSize       int    `query:"pageSize" minimum:"1" maximum:"100" default:"25"`
+}
+
+//vkit:handler
+func NewListProjects(api huma.API, boundary *orgaccess.Boundary) error {
+	huma.Register(api, huma.Operation{OperationID: "webV1ListProjects", Method: http.MethodGet, Path: "/v1/organizations/{organizationId}/projects", Errors: []int{401, 403, 404, 422, 501, 503}}, func(ctx context.Context, in *V1ProjectsListInput) (*V1ProjectsListOutput, error) {
+		if _, err := boundary.Read(ctx, in.OrganizationID, customers.PermissionOrganizationRead); err != nil {
+			return nil, err
+		}
+		// Read through this API's sqlc persistence: add projects_list.sql beside this file, run
+		// `task gen:db`, and scope every query by the caller (ADR-0002, ADR-0004).
+		return nil, huma.Error501NotImplemented("Not implemented")
+	})
+	return nil
+}

@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1.11
+FROM golang:1.27.3-alpine AS builder
+ENV GOWORK=off CGO_ENABLED=0
+WORKDIR /app/apps/web-api
+COPY apps/web-api/go.mod apps/web-api/go.sum ./
+COPY packages/config/go/go.mod packages/config/go/go.sum /app/packages/config/go/
+COPY packages/application/go.mod packages/application/go.sum /app/packages/application/
+COPY packages/db/go.mod packages/db/go.sum /app/packages/db/
+COPY packages/email/go.mod packages/email/go.sum /app/packages/email/
+COPY packages/tools/go.mod packages/tools/go.sum /app/packages/tools/
+COPY packages/fixtures/go.mod /app/packages/fixtures/
+RUN go mod download
+COPY packages/config/go /app/packages/config/go
+COPY packages/fixtures /app/packages/fixtures
+COPY packages/application /app/packages/application
+COPY packages/db /app/packages/db
+COPY packages/email /app/packages/email
+COPY apps/web-api ./
+RUN go build -mod=readonly -trimpath -o /out/web-api .
+
+FROM gcr.io/distroless/static-debian12:nonroot AS runner
+WORKDIR /app
+ENV NODE_ENV=production ZENITH_APPLICATION_ROOT=/app
+COPY --from=builder --chown=65532:65532 /out/web-api /app/web-api
+COPY --chown=65532:65532 config/config.yaml /app/config/config.yaml
+USER 65532:65532
+EXPOSE 4101
+ENTRYPOINT ["/app/web-api"]

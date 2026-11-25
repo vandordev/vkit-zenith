@@ -1,0 +1,41 @@
+package v1
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/vandordev/vkit-zenith/apps/web-api/internal/orgaccess"
+	"github.com/vandordev/vkit-zenith/packages/application/customers"
+)
+
+type V1ProjectsCreateRequest struct {
+	Name string `json:"name" minLength:"1" maxLength:"200"`
+}
+
+type V1ProjectsCreateBody struct {
+	ID string `json:"id" format:"uuid"`
+}
+
+type V1ProjectsCreateOutput struct{ Body V1ProjectsCreateBody }
+
+type V1ProjectsCreateInput struct {
+	OrganizationID string `path:"organizationId"`
+	Origin         string `header:"Origin"`
+	CSRF           string `header:"X-CSRF-Token"`
+	Body           V1ProjectsCreateRequest
+}
+
+//vkit:handler
+func NewCreateProjects(api huma.API, boundary *orgaccess.Boundary) error {
+	huma.Register(api, huma.Operation{OperationID: "webV1CreateProjects", Method: http.MethodPost, Path: "/v1/organizations/{organizationId}/projects", Errors: []int{401, 403, 404, 409, 422, 501, 503}}, func(ctx context.Context, in *V1ProjectsCreateInput) (*V1ProjectsCreateOutput, error) {
+		// Pick the permission this action needs from customers/roles.go.
+		if _, err := boundary.Write(ctx, in.OrganizationID, customers.PermissionOrganizationManage, orgaccess.WriteHeaders{Origin: in.Origin, CSRF: in.CSRF}); err != nil {
+			return nil, err
+		}
+		// Call the application usecase (`task create:usecase`); handlers never write business
+		// data themselves (ADR-0004). Map its errors with this API's existing error helper.
+		return nil, huma.Error501NotImplemented("Not implemented")
+	})
+	return nil
+}

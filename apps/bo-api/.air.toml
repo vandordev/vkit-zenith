@@ -1,0 +1,27 @@
+# Task runs Air from the repository root so shared Go modules can be watched.
+root = "."
+tmp_dir = ".air/bo-api"
+# The application's explicit development adapter alone loads root .env.
+env_files = []
+
+[build]
+cmd = "go build -o ./.air/bo-api/bo-api ./apps/bo-api"
+entrypoint = ["./.air/bo-api/bo-api", "--root", ".", "--development"]
+include_dir = ["apps/bo-api", "packages/application", "packages/config/go", "packages/db", "config"]
+include_file = ["go.work", "go.work.sum"]
+include_ext = ["go", "mod", "sum", "work", "yaml"]
+exclude_dir = [".git", ".air", "node_modules", "vendor", "testdata"]
+exclude_regex = ["_test\\.go$"]
+exclude_unchanged = true
+delay = 300
+stop_on_error = true
+send_interrupt = true
+kill_delay = "5s"
+log = "build-errors.log"
+
+[misc]
+clean_on_exit = true
+
+[screen]
+# Keep BO frontend output visible when both tasks run in parallel.
+clear_on_rebuild = false

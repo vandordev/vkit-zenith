@@ -1,0 +1,59 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing
+coverage
+
+# Turbo
+.turbo
+
+# Vercel
+.vercel
+
+# Build Outputs
+.next/
+.output/
+.vite/
+out/
+build
+dist
+storybook-static/
+.openchamber/screenshots/
+.air/
+
+# Go application/tool outputs (generated sources remain committed)
+apps/web-api/bin/
+packages/tools/bin/
+packages/db/generated.lock
+packages/application/internal/persistence.lock
+apps/bo-api/internal/persistence.lock
+apps/web-api/internal/persistence.lock
+packages/tools/dbtool/testdata/**/generated.lock
+apps/web-api/api
+apps/web-api/api.exe
+apps/api/api
+apps/api/api.exe
+
+
+# Opencode
+opencode.jsonc
+
+
+
+# Debug
+npm-debug.log*
+
+# Misc
+.DS_Store
+*.pem
