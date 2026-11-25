@@ -7,7 +7,11 @@ test("exposes only foundation runtime operations", () => {
 test("Go dev loads development env explicitly and static checks never run services", () => {
 	expect(taskfile).toContain("go run ./apps/api --root '{{.ROOT_DIR}}' --development");
 	expect(taskfile).toContain("go run ./apps/web-api --root '{{.ROOT_DIR}}' --development");
-	const check = taskfile.slice(taskfile.indexOf("  check:go:"), taskfile.indexOf("  check:ui-primitives:"));
+	// Only the check:go task family: a positional slice also swallowed unrelated db:* and check:db:* tasks.
+	const check = taskfile
+		.split(/^(?=  [\w:-]+:$)/m)
+		.filter((block) => /^  check:go(?::[\w-]+)?:\n/.test(block))
+		.join("");
 	expect(check).toContain("go build");
 	expect(check).not.toMatch(/go (?:run|test|vet)/);
 });
