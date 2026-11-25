@@ -155,8 +155,7 @@ verification in the brief. Exceptions to safety, authorization, architecture,
 scope or verification authority require explicit approval; a brief is not approval.
 
 Follow [`.agent/verification.md`](../../.agent/verification.md): UI uses affected
-typechecks and browser Storybook inspection; system changes use typecheck only.
-Start/restart Storybook only with the required permission. These documents do not
-authorize builds, lint/full gates, backend/system tests, databases or services.
+typechecks and browser Storybook inspection; system changes use `task check:quick`.
+These documents do not authorize deployment builds, databases or services.
 For documentation-only adoption, review links, consistency and formatting; do not
 start Storybook or claim visual/runtime acceptance.

@@ -67,4 +67,4 @@ pass from an unchecked item, a typecheck, or a static Storybook build.
 Follow [repository verification policy](../../.agent/verification.md), not a
 generic skill's broader test/build recommendations. Documentation-only work needs
 link/format/consistency review, not a preview server. A UI review does not authorize
-backend services, system tests, scope changes, commits to another branch or a merge.
+backend services, scope changes, commits to another branch or a merge.

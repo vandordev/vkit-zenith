@@ -12,5 +12,5 @@ runtime client instances, never a configured SSR-global singleton.
 
 Feature business logic and future persistence architecture require an approved
 design, not revival of the removed product layers. Follow `verification.md`:
-fresh native TypeScript checks only for this boundary, no tests, backend servers,
-general builds or live API probes. Report runtime behavior as unverified.
+`task check:quick` plus focused tests for this boundary; no backend servers or live API
+probes. Report runtime behavior as unverified.

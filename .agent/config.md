@@ -42,6 +42,6 @@ its server directory. Narrow web tooling emits only listener/NODE_ENV values,
 never flattened config. Feature code must not read env. Build/imports do not read
 runtime YAML/secrets. Never read or modify real local `.env` automatically.
 
-Verification: affected TS checks/Go compilation plus approved focused database
-configuration/isolation fixtures under `.agent/verification.md`. No real `.env`,
-existing database or unrelated parity suites. Deployment remains unverified.
+Verification: `task check:quick`, `task check:infra` and the focused config
+isolation tests, per `.agent/verification.md`. No real `.env` or existing database.
+Deployment remains unverified.

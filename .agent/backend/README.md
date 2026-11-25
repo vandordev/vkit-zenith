@@ -59,5 +59,5 @@ credentialed CORS and memory-only CSRF; BO has separate staff identity.
 reads runtime config or opens a pool/listener. Web API identity and email usecases
 remain installed; account/session tests use the counted Node wrappers and owned
 isolated PostgreSQL as allowed by verification.md. Test capture/clock/fault tools
-never enter runtime dependency closures. Other system verification is compile-only;
-no service startup, probes, existing databases or general builds.
+never enter runtime dependency closures. Other verification follows
+`verification.md`: no service startup, probes or existing databases.

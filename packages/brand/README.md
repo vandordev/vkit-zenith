@@ -105,8 +105,8 @@ status and test), typography, motion tokens and the shared radius scale. The pac
 dependencies support these previews; production identity itself has no runtime dependency.
 
 Follow [verification policy](../../.agent/verification.md): UI uses Storybook plus
-affected native typechecks. Server/config wiring uses typecheck only. Do not run
-builds, system tests, Compose, or backend services for verification. Starting or
+affected native typechecks. Server/config wiring uses `task check:quick`. Do not run
+deployment builds, Compose, or backend services for verification. Starting or
 restarting repository-owned Storybook on port 6006 is authorized without repeated permission,
 subject to ownership/process safeguards in the verification policy.
 

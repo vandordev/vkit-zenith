@@ -93,12 +93,10 @@ data, and discovery endpoints require separately scoped implementation.
 
 ## Verification
 
-SEO helpers, route heads, serialization, and server endpoints use the system
-track: affected native typechecks only. Do not start web/backend services, call
-SEO endpoints or remote crawlers, render server OG images, download runtime fonts,
-run tests/builds, or start Compose for verification. Route-tree regeneration
-is authorized without repeated permission under the narrow codegen exception in
-[routing.md](routing.md), not as a general verification build.
+SEO helpers, route heads, serialization, and server endpoints use `task check:quick`
+and focused tests. Do not start web/backend services, call SEO endpoints or remote
+crawlers, render server OG images, download runtime fonts, or start Compose for
+verification. Route-tree regeneration is allowed (see [routing.md](routing.md)).
 
 If an approved task changes visible presentation, that UI boundary uses Storybook
 plus typecheck with local fixtures, without importing server OG generators into

@@ -13,8 +13,8 @@ use [the page brief](../../docs/frontend/PAGE_BRIEF.md) and
 not evidence that every existing screen already complies or new verification authority.
 
 Follow [verification.md](../verification.md): UI uses Storybook plus typecheck;
-server functions/adapters use TypeScript checks; Go uses compile-only checks. Do not start
-the product stack, run system tests, or add lint/build/full-repository gates.
+server functions/adapters use `task check:quick` and focused tests. Do not start
+the product stack or run deployment builds.
 New or changed UI follows component-driven design: check persisted-data feasibility
 and runtime support, develop typed presentation components with colocated stories,
 verify them in Storybook, then integrate routes/generated clients. Presentation components do
@@ -77,7 +77,7 @@ See [client guidance](../../apps/web/README.md) for runtime setup,
 offline generation and Zod request-body reuse in future forms.
 For TanStack Start SEO, use the `tanstack-seo` skill and [SEO rules](seo.md).
 Adapt its examples to `src/app` and `appConfig`; do not invent a public domain or
-index private content. SEO server/head changes follow system typecheck-only verification.
+index private content. SEO server/head changes follow `task check:quick` and focused tests.
 
 The generated tree is owned by the TanStack plugin. Keep route-local helpers
 under `-`-prefixed files or directories; `_` is reserved for pathless layouts.

@@ -96,8 +96,7 @@ The canonical platform fixture uses the single 21-table baseline. Generated
 queries cover retained identity and audit round trips. Read Committed and
 Repeatable Read races use observed locks for owner and staff invariants.
 
-Only focused DB tests and temporary containers are authorized under the active
-verification exception. Tests do not load real `.env`, select existing databases,
+Focused DB tests and temporary containers are allowed under `.agent/verification.md`. Tests do not load real `.env`, select existing databases,
 or stop unrelated processes. Cleanup failures are errors. No app image build is
 authorized as verification; BO API packaging explicitly includes DB/application/config source.
 Offline
